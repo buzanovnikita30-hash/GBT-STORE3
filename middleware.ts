@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
-  const protectedPaths = ["/dashboard", "/admin", "/checkout", "/support"];
+  const protectedPaths = ["/dashboard", "/cabinet", "/admin", "/checkout", "/support"];
   const isProtected = protectedPaths.some((p) => path.startsWith(p));
   const isAuthPage = path.startsWith("/login") || path.startsWith("/register");
   const canSwitchAccount = request.nextUrl.searchParams.get("switch") === "1";
@@ -63,5 +63,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
+  // Критично: middleware не должен перехватывать никакие /_next/* ассеты,
+  // иначе в dev может отваливаться подгрузка CSS/JS и страница выглядит "голой".
+  matcher: ["/((?!_next|favicon.ico|api/).*)"],
 };

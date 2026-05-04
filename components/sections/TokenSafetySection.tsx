@@ -6,7 +6,7 @@ import { fadeUp, staggerContainer } from "@/lib/motion-config";
 
 export function TokenSafetySection() {
   return (
-    <section className="px-4 py-16 md:px-6 md:py-20">
+    <section id="connection" className="px-4 py-16 md:px-6 md:py-20">
       <motion.div
         initial="hidden"
         whileInView="visible"
@@ -19,10 +19,11 @@ export function TokenSafetySection() {
             Безопасность
           </span>
           <h2 className="font-heading text-2xl font-bold text-gray-900 md:text-3xl">
-            О токене — честно и понятно
+            Данные сессии — честно и понятно
           </h2>
           <p className="mt-3 text-gray-500">
-            Мы знаем, что отправлять токен кажется пугающим. Объясняем зачем он нужен и как защитить свой аккаунт.
+            Рассказываем, зачем могут понадобиться данные сессии, как их получить по ссылке chatgpt.com и как
+            передавать их безопасно — только в чат сайта GPT STORE.
           </p>
         </motion.div>
 

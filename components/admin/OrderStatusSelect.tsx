@@ -1,0 +1,67 @@
+"use client";
+
+import { useState } from "react";
+import type { OrderStatus } from "@/types/database";
+
+const OPTIONS: { value: OrderStatus; label: string }[] = [
+  { value: "pending", label: "Ожидает оплаты" },
+  { value: "paid", label: "Оплачен" },
+  { value: "activating", label: "В активации" },
+  { value: "waiting_client", label: "Ждём данные клиента" },
+  { value: "active", label: "Активирован" },
+  { value: "failed", label: "Ошибка" },
+  { value: "expired", label: "Истёк" },
+  { value: "refunded", label: "Возврат" },
+];
+
+type Props = {
+  orderId: string;
+  initialStatus: OrderStatus;
+};
+
+export function OrderStatusSelect({ orderId, initialStatus }: Props) {
+  const [status, setStatus] = useState<OrderStatus>(initialStatus);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onChange(next: OrderStatus) {
+    if (next === status) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: next }),
+      });
+      const j = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setErr(j.error ?? "Ошибка");
+        return;
+      }
+      setStatus(next);
+    } catch {
+      setErr("Сеть");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <select
+        value={status}
+        disabled={busy}
+        onChange={(e) => void onChange(e.target.value as OrderStatus)}
+        className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-800"
+      >
+        {OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      {err && <span className="text-[10px] text-red-500">{err}</span>}
+    </div>
+  );
+}

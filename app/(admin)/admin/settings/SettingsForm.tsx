@@ -1,39 +1,122 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2, Check } from "lucide-react";
+import { CHATGPT_PLANS, type ExtendedPlan } from "@/lib/chatgpt-data";
 
 interface Props {
   initialSettings: Record<string, unknown>;
 }
 
+type EditablePlan = {
+  id: string;
+  productId: "chatgpt-plus" | "chatgpt-pro";
+  name: string;
+  price: number;
+  period: string;
+  badge?: string;
+  description: string;
+  features: string[];
+  isPopular: boolean;
+  cta: string;
+  currency: string;
+};
+
 const FIELDS = [
-  { key: "auto_reply_delay_minutes", label: "Задержка авто-ответа (минут)", type: "number" },
+  { key: "auto_reply_delay_minutes", label: "Задержка авто-ответа", type: "select" as const },
   { key: "operator_telegram_url", label: "Ссылка на оператора в Telegram", type: "text" },
-  { key: "night_start_hour", label: "Начало ночного режима (час)", type: "number" },
-  { key: "night_end_hour", label: "Конец ночного режима (час)", type: "number" },
+  { key: "night_start_hour", label: "Начало ночного режима", type: "select" as const },
+  { key: "night_end_hour", label: "Конец ночного режима", type: "select" as const },
 ];
 
 export function SettingsForm({ initialSettings }: Props) {
-  const [values, setValues] = useState<Record<string, string>>(
-    Object.fromEntries(FIELDS.map((f) => [f.key, String(initialSettings[f.key] ?? "")]))
+  const fallbackPlans = useMemo<EditablePlan[]>(
+    () =>
+      [...CHATGPT_PLANS.plus, ...CHATGPT_PLANS.pro].map((plan) => ({
+        ...plan,
+        currency: plan.currency ?? "₽",
+      })),
+    []
   );
+
+  const initialPlans = useMemo<EditablePlan[]>(() => {
+    const raw = initialSettings.pricing_plans;
+    if (!Array.isArray(raw)) return fallbackPlans;
+    const parsed = raw
+      .map((item) => {
+        if (!item || typeof item !== "object") return null;
+        const p = item as Record<string, unknown>;
+        const id = typeof p.id === "string" ? p.id : "";
+        const fallback = fallbackPlans.find((x) => x.id === id) ?? fallbackPlans[0];
+        if (!id) return null;
+        return {
+          id,
+          productId: p.productId === "chatgpt-pro" ? "chatgpt-pro" : "chatgpt-plus",
+          name: typeof p.name === "string" ? p.name : fallback?.name ?? id,
+          price: typeof p.price === "number" ? p.price : Number(p.price ?? fallback?.price ?? 0),
+          period: typeof p.period === "string" ? p.period : fallback?.period ?? "мес",
+          badge: typeof p.badge === "string" ? p.badge : fallback?.badge,
+          description:
+            typeof p.description === "string" ? p.description : fallback?.description ?? "",
+          features: Array.isArray(p.features)
+            ? p.features.filter((f): f is string => typeof f === "string")
+            : (fallback?.features ?? []),
+          isPopular: typeof p.isPopular === "boolean" ? p.isPopular : Boolean(fallback?.isPopular),
+          cta: typeof p.cta === "string" ? p.cta : fallback?.cta ?? "Подключить",
+          currency: typeof p.currency === "string" ? p.currency : fallback?.currency ?? "₽",
+        };
+      })
+      .filter((p): p is EditablePlan => Boolean(p));
+    return parsed.length ? parsed : fallbackPlans;
+  }, [fallbackPlans, initialSettings.pricing_plans]);
+
+  const initialAvailability = useMemo<Record<string, boolean>>(() => {
+    const raw = initialSettings.plan_availability;
+    const fromDb: Record<string, boolean> = {};
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+        fromDb[id] = value !== false;
+      }
+    }
+    for (const plan of initialPlans) {
+      if (!(plan.id in fromDb)) fromDb[plan.id] = true;
+    }
+    return fromDb;
+  }, [initialPlans, initialSettings.plan_availability]);
+
+  const [values, setValues] = useState<Record<string, string>>({
+    auto_reply_delay_minutes: String(initialSettings.auto_reply_delay_minutes ?? 15),
+    operator_telegram_url: String(initialSettings.operator_telegram_url ?? ""),
+    night_start_hour: String(initialSettings.night_start_hour ?? 22),
+    night_end_hour: String(initialSettings.night_end_hour ?? 9),
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pricingJson, setPricingJson] = useState(
-    JSON.stringify(initialSettings.pricing_plans ?? [], null, 2)
-  );
-  const [promoJson, setPromoJson] = useState(
-    JSON.stringify(initialSettings.promo_codes ?? [], null, 2)
-  );
-  const [sectionsJson, setSectionsJson] = useState(
-    JSON.stringify(
-      initialSettings.landing_sections ?? { showReviews: true, showFaq: true, showCompare: true },
-      null,
-      2
-    )
-  );
+  const [pricingPlans, setPricingPlans] = useState<EditablePlan[]>(initialPlans);
+  const [planAvailability, setPlanAvailability] = useState<Record<string, boolean>>(initialAvailability);
+  const [sections, setSections] = useState<{
+    showReviews: boolean;
+    showFaq: boolean;
+    showCompare: boolean;
+  }>({
+    showReviews: initialSettings.landing_sections
+      ? (initialSettings.landing_sections as Record<string, unknown>).showReviews !== false
+      : true,
+    showFaq: initialSettings.landing_sections
+      ? (initialSettings.landing_sections as Record<string, unknown>).showFaq !== false
+      : true,
+    showCompare: initialSettings.landing_sections
+      ? (initialSettings.landing_sections as Record<string, unknown>).showCompare !== false
+      : true,
+  });
+
+  const delayOptions = [0, 2, 5, 10, 15, 20, 30, 45, 60];
+  const hourOptions = Array.from({ length: 24 }, (_, i) => i);
+
+  function updatePlan(id: string, patch: Partial<EditablePlan>) {
+    setPricingPlans((prev) => prev.map((plan) => (plan.id === id ? { ...plan, ...patch } : plan)));
+  }
 
   async function onSave() {
     setSaving(true);
@@ -41,11 +124,25 @@ export function SettingsForm({ initialSettings }: Props) {
     try {
       const payload: Record<string, unknown> = {};
       for (const field of FIELDS) {
-        payload[field.key] = field.type === "number" ? Number(values[field.key]) : values[field.key];
+        payload[field.key] = field.type === "select" ? Number(values[field.key]) : values[field.key];
       }
-      payload.pricing_plans = JSON.parse(pricingJson);
-      payload.promo_codes = JSON.parse(promoJson);
-      payload.landing_sections = JSON.parse(sectionsJson);
+      const plansToSave: ExtendedPlan[] = pricingPlans.map((plan) => ({
+        id: plan.id,
+        productId: plan.productId,
+        name: plan.name,
+        price: Math.max(0, Number(plan.price || 0)),
+        currency: plan.currency || "₽",
+        period: plan.period || "мес",
+        badge: plan.badge || undefined,
+        description: plan.description,
+        features: plan.features,
+        isPopular: plan.isPopular,
+        cta: plan.cta,
+      }));
+
+      payload.pricing_plans = plansToSave;
+      payload.landing_sections = sections;
+      payload.plan_availability = planAvailability;
 
       const res = await fetch("/api/admin/settings", {
         method: "POST",
@@ -64,7 +161,7 @@ export function SettingsForm({ initialSettings }: Props) {
       setTimeout(() => setSaved(false), 3000);
     } catch {
       setSaving(false);
-      setError("Проверь JSON в ценах, промокодах и видимости блоков.");
+      setError("Не удалось сохранить настройки. Проверьте заполнение полей.");
     }
   }
 
@@ -72,50 +169,162 @@ export function SettingsForm({ initialSettings }: Props) {
     <div className="space-y-4">
       {FIELDS.map((field) => (
         <div key={field.key}>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+          <label className="mb-1.5 block text-sm font-medium text-gray-700">
             {field.label}
           </label>
-          <input
-            type={field.type}
-            value={values[field.key] ?? ""}
-            onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
-            className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-3.5 py-2.5 text-sm text-gray-200 outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
-          />
+          {field.type === "text" ? (
+            <input
+              type="text"
+              value={values[field.key] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
+            />
+          ) : (
+            <select
+              value={values[field.key] ?? ""}
+              onChange={(e) => setValues((v) => ({ ...v, [field.key]: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
+            >
+              {(field.key === "auto_reply_delay_minutes" ? delayOptions : hourOptions).map((option) => (
+                <option key={option} value={option}>
+                  {field.key === "auto_reply_delay_minutes"
+                    ? `${option} мин`
+                    : `${option.toString().padStart(2, "0")}:00`}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       ))}
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-300">Тарифы (JSON)</label>
-        <textarea
-          value={pricingJson}
-          onChange={(e) => setPricingJson(e.target.value)}
-          rows={10}
-          className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-3.5 py-2.5 font-mono text-xs text-gray-200 outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
-        />
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">Наличие подписок</label>
+        <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
+          {pricingPlans.length ? (
+            pricingPlans.map((plan) => (
+              <label
+                key={plan.id}
+                className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-gray-100 px-3 py-2"
+              >
+                <span className="text-sm text-gray-700">
+                  {plan.name}
+                  <span className="ml-2 text-xs text-gray-400">({plan.productId})</span>
+                </span>
+                <span className="flex items-center gap-2 text-xs text-gray-500">
+                  <input
+                    type="checkbox"
+                    checked={planAvailability[plan.id] !== false}
+                    onChange={(e) =>
+                      setPlanAvailability((prev) => ({
+                        ...prev,
+                        [plan.id]: e.target.checked,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-gray-300 accent-[#10a37f]"
+                  />
+                  В наличии
+                </span>
+              </label>
+            ))
+          ) : (
+            <p className="text-xs text-gray-500">Тарифы не найдены.</p>
+          )}
+        </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-300">Промокоды (JSON)</label>
-        <textarea
-          value={promoJson}
-          onChange={(e) => setPromoJson(e.target.value)}
-          rows={8}
-          className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-3.5 py-2.5 font-mono text-xs text-gray-200 outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
-        />
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">Тарифы</label>
+        <div className="space-y-3">
+          {pricingPlans.map((plan) => (
+            <div key={plan.id} className="rounded-xl border border-gray-200 bg-white p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-gray-800">{plan.name}</p>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-gray-500">
+                  {plan.id}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Продукт</label>
+                  <select
+                    value={plan.productId}
+                    onChange={(e) =>
+                      updatePlan(plan.id, {
+                        productId: e.target.value === "chatgpt-pro" ? "chatgpt-pro" : "chatgpt-plus",
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm outline-none focus:border-[#10a37f]"
+                  >
+                    <option value="chatgpt-plus">ChatGPT Plus</option>
+                    <option value="chatgpt-pro">ChatGPT Pro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Цена (₽)</label>
+                  <input
+                    type="number"
+                    value={plan.price}
+                    onChange={(e) => updatePlan(plan.id, { price: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm outline-none focus:border-[#10a37f]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Период</label>
+                  <select
+                    value={plan.period}
+                    onChange={(e) => updatePlan(plan.id, { period: e.target.value })}
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm outline-none focus:border-[#10a37f]"
+                  >
+                    <option value="мес">мес</option>
+                    <option value="3 мес">3 мес</option>
+                    <option value="год">год</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Популярный</label>
+                  <select
+                    value={plan.isPopular ? "yes" : "no"}
+                    onChange={(e) => updatePlan(plan.id, { isPopular: e.target.value === "yes" })}
+                    className="w-full rounded-lg border border-gray-200 px-2.5 py-2 text-sm outline-none focus:border-[#10a37f]"
+                  >
+                    <option value="no">Нет</option>
+                    <option value="yes">Да</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-medium text-gray-300">Видимость блоков лендинга (JSON)</label>
-        <textarea
-          value={sectionsJson}
-          onChange={(e) => setSectionsJson(e.target.value)}
-          rows={4}
-          className="w-full rounded-xl border border-white/[0.12] bg-white/[0.05] px-3.5 py-2.5 font-mono text-xs text-gray-200 outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
-        />
+        <label className="mb-1.5 block text-sm font-medium text-gray-700">Видимость блоков лендинга</label>
+        <div className="space-y-2 rounded-xl border border-gray-200 bg-white p-3">
+          {[
+            { key: "showReviews", label: "Показывать отзывы" },
+            { key: "showFaq", label: "Показывать FAQ" },
+            { key: "showCompare", label: "Показывать сравнение Plus/Pro" },
+          ].map((item) => (
+            <label key={item.key} className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-100 px-3 py-2">
+              <span className="text-sm text-gray-700">{item.label}</span>
+              <input
+                type="checkbox"
+                checked={sections[item.key as keyof typeof sections]}
+                onChange={(e) =>
+                  setSections((prev) => ({
+                    ...prev,
+                    [item.key]: e.target.checked,
+                  }))
+                }
+                className="h-4 w-4 rounded border-gray-300 accent-[#10a37f]"
+              />
+            </label>
+          ))}
+        </div>
       </div>
 
       {error && (
-        <p className="rounded-lg border border-red-700/40 bg-red-900/20 px-3 py-2 text-sm text-red-300">
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
         </p>
       )}

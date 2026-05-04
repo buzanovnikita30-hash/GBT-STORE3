@@ -1,16 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeEmailForAuth } from "@/lib/auth/normalizeEmail";
 import { registerSchema, type RegisterInput } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 
+function isAlreadyRegisteredError(message: string): boolean {
+  const m = message.toLowerCase();
+  return m.includes("already") || m.includes("registered") || m.includes("exists");
+}
+
 export function RegisterForm() {
+  const router = useRouter();
   const [showPass, setShowPass] = useState(false);
-  const [done, setDone] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -22,28 +29,34 @@ export function RegisterForm() {
   async function onSubmit(data: RegisterInput) {
     setServerError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
+    const normalizedEmail = normalizeEmailForAuth(data.email);
+    const { data: signData, error } = await supabase.auth.signUp({
+      email: normalizedEmail,
       password: data.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/callback?returnUrl=/?verified=1`,
+        emailRedirectTo: `${window.location.origin}/callback?returnUrl=/cabinet`,
       },
     });
     if (error) {
-      setServerError(error.message);
+      if (isAlreadyRegisteredError(error.message)) {
+        setServerError("Этот email уже зарегистрирован. Войдите в аккаунт или восстановите пароль.");
+      } else {
+        setServerError("Не удалось создать аккаунт. Попробуйте снова.");
+      }
       return;
     }
-    setDone(true);
-  }
-
-  if (done) {
-    return (
-      <div className="rounded-2xl border border-[#10a37f]/30 bg-[#10a37f]/5 px-5 py-6 text-center">
-        <p className="text-lg font-semibold text-gray-900 mb-2">Проверьте почту</p>
-        <p className="text-sm text-gray-600">
-          Мы отправили письмо с подтверждением. Перейдите по ссылке в письме, чтобы завершить регистрацию.
-        </p>
-      </div>
+    const hasNoIdentity =
+      Array.isArray(signData.user?.identities) && signData.user?.identities.length === 0;
+    if (hasNoIdentity) {
+      setServerError("Этот email уже зарегистрирован. Войдите в аккаунт или восстановите пароль.");
+      return;
+    }
+    if (signData.session) {
+      await supabase.auth.signOut();
+    }
+    const sentTo = signData.user?.email ?? normalizedEmail;
+    router.push(
+      `/verify-email?email=${encodeURIComponent(sentTo)}&sent=1`
     );
   }
 
@@ -112,7 +125,7 @@ export function RegisterForm() {
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10a37f] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
       >
         {isSubmitting && <Loader2 size={15} className="animate-spin" />}
-        Зарегистрироваться
+        {isSubmitting ? "Отправка письма…" : "Зарегистрироваться"}
       </button>
 
       <p className="text-center text-xs text-gray-400">

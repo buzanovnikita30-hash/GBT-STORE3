@@ -7,7 +7,7 @@ import { LandingFooter } from "@/components/layout/LandingFooter";
 export const metadata: Metadata = {
   title: "Гарантия",
   description:
-    "Гарантия на весь срок подписки ChatGPT Plus и Pro: возврат и переактивация при проблемах.",
+    "Гарантия на весь срок подписки ChatGPT 5.5 и ChatGPT 5.5 Pro: возврат и переактивация при проблемах.",
 };
 
 export default function GuaranteePage() {

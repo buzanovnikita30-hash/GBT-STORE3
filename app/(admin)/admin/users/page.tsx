@@ -54,8 +54,8 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-2 font-heading text-2xl font-bold text-gray-100">Пользователи</h1>
-      <p className="mb-5 text-sm text-gray-400">
+      <h1 className="mb-2 font-heading text-2xl font-bold text-gray-900">Пользователи</h1>
+      <p className="mb-5 text-sm text-gray-600">
         Здесь можно назначить оператора, передать права администратора и просмотреть клиентов.
       </p>
       <UsersRoleManager users={preparedUsers} currentUserId={user?.id ?? ""} />

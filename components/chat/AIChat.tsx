@@ -24,7 +24,7 @@ export function AIChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Привет! Я помощник GBT STORE. Могу ответить на вопросы о подключении ChatGPT Plus или Pro. Чем могу помочь?",
+      content: "Привет! Я помощник GPT STORE. Могу ответить на вопросы о подключении ChatGPT Plus или Pro. Чем могу помочь?",
     },
   ]);
   const [input, setInput] = useState("");

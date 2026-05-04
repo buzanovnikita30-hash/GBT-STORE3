@@ -2,31 +2,23 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, ChevronDown, CheckCircle2, ExternalLink } from "lucide-react";
+import { Lock, ChevronDown, CheckCircle2, ExternalLink, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-
-const STEPS = [
-  "Откройте chat.openai.com в браузере",
-  "Нажмите F12 (или правой кнопкой → «Просмотр кода»)",
-  "Перейдите во вкладку Application (или Storage)",
-  "Слева найдите Cookies → https://chat.openai.com",
-  "Найдите строку __Secure-next-auth.session-token",
-  "Скопируйте значение из колонки Value",
-  "Отправьте его нам в чат",
-];
+import { CHATGPT_SESSION_URL, SESSION_INSTRUCTION_STEPS } from "@/lib/copy/session-instruction";
 
 const FACTS = [
   {
-    title: "Мы не получаем доступ к аккаунту",
-    body: "Токен используется только для одного действия — подключения подписки. Ваши чаты, данные и переписка остаются полностью приватными.",
+    title: "Зачем нужны данные сессии",
+    body: "Иногда для подключения подписки ChatGPT на ваш аккаунт нужны данные сессии из браузера. Без них технически нельзя завершить привязку подписки.",
   },
   {
-    title: "Используется временный токен",
-    body: "Токен действителен ограниченное время и только для активации подписки. После активации он становится бесполезным.",
+    title: "Куда отправлять",
+    body: "Такие данные могут фактически открывать доступ к сессии аккаунта, поэтому передавайте их только в официальный чат сайта GPT STORE — не в мессенджеры и не на сторонние адреса.",
   },
   {
-    title: "Можно завершить все сессии после активации",
-    body: "После подключения подписки зайдите в Настройки ChatGPT → Безопасность → Завершить все сессии — для полного спокойствия.",
+    title: "После подключения",
+    body: "Когда подписка подключена, вы можете завершить активные сессии или обновить настройки безопасности в ChatGPT. Пароль мы не запрашиваем.",
   },
 ];
 
@@ -34,14 +26,33 @@ interface Props {
   compact?: boolean;
   onSendToken?: () => void;
   className?: string;
+  /** Показать кнопку «Написать в поддержку» (чат сайта) */
+  showSupportLink?: boolean;
+  supportHref?: string;
 }
 
-export function TokenSafetyBlock({ compact = false, onSendToken, className }: Props) {
+export function TokenSafetyBlock({
+  compact = false,
+  onSendToken,
+  className,
+  showSupportLink = true,
+  supportHref = "/dashboard/chat",
+}: Props) {
   const [isOpen, setIsOpen] = useState(!compact);
+  const [copied, setCopied] = useState(false);
+
+  async function copyUrl() {
+    try {
+      await navigator.clipboard.writeText(CHATGPT_SESSION_URL);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
 
   return (
     <div className={cn("rounded-2xl border border-black/[0.08] bg-white", className)}>
-      {/* Заголовок */}
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
@@ -49,7 +60,7 @@ export function TokenSafetyBlock({ compact = false, onSendToken, className }: Pr
       >
         <div className="flex items-center gap-2.5">
           <Lock size={16} className="shrink-0 text-[#10a37f]" />
-          <span className="text-sm font-semibold text-gray-800">Почему это безопасно?</span>
+          <span className="text-sm font-semibold text-gray-800">Как работает подключение</span>
         </div>
         <ChevronDown
           size={16}
@@ -68,15 +79,13 @@ export function TokenSafetyBlock({ compact = false, onSendToken, className }: Pr
             className="overflow-hidden"
           >
             <div className="border-t border-black/[0.06] px-5 pb-5 pt-4 space-y-5">
-              {/* Что такое токен */}
               <p className="text-sm text-gray-600 leading-relaxed">
-                <span className="font-semibold text-gray-800">Токен</span> — это временный ключ доступа, который
-                позволяет нам подключить подписку к вашему аккаунту. Это{" "}
-                <span className="font-semibold">НЕ ваш пароль</span> и{" "}
-                <span className="font-semibold">НЕ доступ к вашей переписке.</span>
+                Для части сценариев подключения нужны{" "}
+                <span className="font-semibold text-gray-800">данные сессии</span> аккаунта ChatGPT. Это{" "}
+                <span className="font-semibold">не пароль</span>, но такие данные могут давать доступ к сессии
+                аккаунта — относитесь к ним внимательно и отправляйте только в чат сайта GPT STORE.
               </p>
 
-              {/* 3 факта */}
               <div className="grid gap-3 sm:grid-cols-3">
                 {FACTS.map((fact) => (
                   <div
@@ -92,18 +101,36 @@ export function TokenSafetyBlock({ compact = false, onSendToken, className }: Pr
                 ))}
               </div>
 
-              {/* Пошаговая инструкция */}
               <div>
                 <p className="mb-3 text-sm font-semibold text-gray-800">
-                  Как получить токен — пошагово:
+                  Следуйте, пожалуйста, инструкции:
                 </p>
-                <ol className="space-y-2">
-                  {STEPS.map((step, i) => (
+                <ol className="space-y-3">
+                  {SESSION_INSTRUCTION_STEPS.map((step, i) => (
                     <li key={i} className="flex items-start gap-2.5">
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#10a37f]/10 text-[10px] font-bold text-[#10a37f]">
                         {i + 1}
                       </span>
-                      <span className="text-sm text-gray-600">{step}</span>
+                      <div className="min-w-0 flex-1 text-sm text-gray-600">
+                        <p>{step}</p>
+                        {i === 2 && (
+                          <div className="mt-2 flex flex-col gap-1.5 sm:flex-row sm:items-center">
+                            <button
+                              type="button"
+                              onClick={() => void copyUrl()}
+                              className="inline-flex w-full max-w-full items-center justify-center break-all rounded-lg border border-[#10a37f]/35 bg-[#10a37f]/6 px-3 py-2 text-left font-mono text-[12px] font-medium text-[#0f7d62] hover:bg-[#10a37f]/12 sm:w-auto"
+                              title="Скопировать ссылку"
+                            >
+                              {CHATGPT_SESSION_URL}
+                            </button>
+                            {copied ? (
+                              <span className="text-xs font-medium text-[#10a37f]">Скопировано</span>
+                            ) : (
+                              <span className="text-xs text-gray-400">Нажмите, чтобы скопировать</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ol>
@@ -121,10 +148,24 @@ export function TokenSafetyBlock({ compact = false, onSendToken, className }: Pr
                 )}
               </div>
 
-              {/* Пометка + кнопка */}
-              <p className="rounded-xl bg-amber-50 border border-amber-200/60 px-4 py-3 text-xs text-amber-700 leading-relaxed">
-                После активации рекомендуем: Настройки ChatGPT → Безопасность → Завершить все сессии.
-                Это дополнительная мера предосторожности, хотя токен и так становится недействительным после использования.
+              {showSupportLink && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Link
+                    href={supportHref}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#10a37f]/40 bg-[#10a37f]/8 px-4 py-2.5 text-sm font-semibold text-[#0f7d62] transition-colors hover:bg-[#10a37f]/15"
+                  >
+                    <MessageCircle size={16} />
+                    Написать в поддержку
+                  </Link>
+                  <span className="text-xs text-gray-500 sm:pl-2">
+                    Откроется чат сайта — туда же отправляйте данные по инструкции.
+                  </span>
+                </div>
+              )}
+
+              <p className="rounded-xl bg-amber-50 border border-amber-200/60 px-4 py-3 text-xs text-amber-800 leading-relaxed">
+                Мы не запрашиваем пароль. Инструкцию и ответы по подключению вы получаете на сайте и в чате GPT
+                STORE — не ищите её в письмах на email: там будут только статусы заказа и короткие уведомления.
               </p>
 
               {onSendToken && (
@@ -134,7 +175,7 @@ export function TokenSafetyBlock({ compact = false, onSendToken, className }: Pr
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#10a37f] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
                 >
                   <CheckCircle2 size={15} />
-                  Понял, отправить токен
+                  Открыть чат и отправить данные
                 </button>
               )}
             </div>

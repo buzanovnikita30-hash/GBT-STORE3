@@ -38,7 +38,7 @@ export default async function AdminChatPage() {
 
   return (
     <div className="flex h-[calc(100vh-2rem)] flex-col p-4 md:p-6">
-      <h1 className="mb-4 font-heading text-2xl font-bold text-gray-100">Чат с клиентами</h1>
+      <h1 className="mb-4 font-heading text-2xl font-bold text-gray-900">Чат с клиентами</h1>
       <div className="min-h-0 flex-1">
         <OperatorPanel currentUser={profile} />
       </div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Политика конфиденциальности",
-  description: "Политика конфиденциальности сервиса GBT STORE",
+  description: "Политика конфиденциальности сервиса GPT STORE",
 };
 
 const SUPPORT_TELEGRAM = "https://t.me/subs_support";
@@ -16,7 +16,7 @@ export default function PrivacyPage() {
     <div className="flex min-h-screen flex-col bg-white">
       <header className="flex h-14 items-center border-b border-black/[0.06] px-6">
         <Link href="/" className="font-heading text-sm font-semibold text-gray-900 hover:text-[#10a37f]">
-          GBT STORE
+          GPT STORE
         </Link>
       </header>
       <main className="mx-auto max-w-3xl flex-1 px-4 py-12">
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             <h2 className="font-heading text-xl font-semibold text-gray-900">1. Общие положения</h2>
             <p>
               Настоящая политика описывает, какие персональные и связанные с ними данные обрабатываются при использовании сайта
-              GBT STORE, в каких целях, на каком правовом основании и какие меры применяются для их защиты. Используя сайт,
+              GPT STORE, в каких целях, на каком правовом основании и какие меры применяются для их защиты. Используя сайт,
               регистрируясь или оформляя заказ, вы подтверждаете, что ознакомились с политикой. Подробности об услугах и
               договорных отношениях — в{" "}
               <Link href="/terms" className="text-[#10a37f] hover:underline">
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="font-heading text-xl font-semibold text-gray-900">2. Кто обрабатывает данные</h2>
             <p>
-              Оператором персональных данных в рамках работы сайта и сопутствующих сервисов выступает владелец проекта GBT STORE
+              Оператором персональных данных в рамках работы сайта и сопутствующих сервисов выступает владелец проекта GPT STORE
               (далее — «Оператор»). По вопросам обработки данных вы можете обратиться по контактам в конце документа.
             </p>
           </section>

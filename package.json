@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run clean && next dev",
+    "dev": "node scripts/run-next-dev.js",
     "clean": "node scripts/clean-next.js",
-    "dev:clean": "npm run clean && next dev",
+    "dev:clean": "node scripts/run-next-dev.js",
     "build:clean": "npm run clean && next build",
     "build": "next build",
     "start": "next start",

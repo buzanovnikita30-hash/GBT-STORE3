@@ -32,7 +32,7 @@ export default async function PublicReviewsPage({
     <div className="flex min-h-screen flex-col bg-white">
       <header className="flex h-14 items-center border-b border-black/[0.06] px-6">
         <Link href="/" className="font-heading text-sm font-semibold text-gray-900 hover:text-[#10a37f]">
-          GBT STORE
+          GPT STORE
         </Link>
       </header>
 

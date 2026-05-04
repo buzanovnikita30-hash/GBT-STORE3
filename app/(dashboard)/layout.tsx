@@ -29,7 +29,7 @@ export default async function DashboardLayout({
         <div className="border-b border-white/10 px-4 py-5">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#10a37f] text-sm font-bold text-white">G</div>
-            <span className="font-heading text-sm font-bold text-white">GBT STORE</span>
+            <span className="font-heading text-sm font-bold text-white">GPT STORE</span>
           </Link>
         </div>
 
@@ -64,7 +64,7 @@ export default async function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile header */}
         <header className="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 md:hidden">
-          <Link href="/" className="font-heading text-sm font-semibold text-gray-900">GBT STORE</Link>
+          <Link href="/" className="font-heading text-sm font-semibold text-gray-900">GPT STORE</Link>
           <DashboardMobileNav />
         </header>
         <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">{children}</main>

@@ -26,14 +26,14 @@ export default async function AdminReviewsPage({
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold text-gray-100">Отзывы</h1>
+        <h1 className="font-heading text-2xl font-bold text-gray-900">Отзывы</h1>
         <div className="flex gap-2">
           {["pending", "approved", "rejected"].map((s) => (
             <a
               key={s}
               href={`/admin/reviews?status=${s}`}
               className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                status === s ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"
+                status === s ? "bg-[#10a37f]/10 text-[#0f7d62]" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               {s === "pending" ? "На модерации" : s === "approved" ? "Опубликованы" : "Отклонены"}
@@ -44,16 +44,16 @@ export default async function AdminReviewsPage({
 
       <div className="space-y-3">
         {(reviews ?? []).map((review) => (
-          <div key={review.id} className="rounded-xl border border-white/[0.07] bg-gray-900 p-4">
+          <div key={review.id} className="rounded-xl border border-gray-200 bg-white p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-200">
+                <p className="text-sm font-semibold text-gray-900">
                   {review.author_name ?? "Аноним"}
                   {review.author_username && (
                     <span className="ml-2 text-xs text-gray-500">@{review.author_username}</span>
                   )}
                 </p>
-                <p className="mt-2 text-sm text-gray-300 leading-relaxed">{review.content}</p>
+                <p className="mt-2 text-sm leading-relaxed text-gray-700">{review.content}</p>
                 {review.telegram_date && (
                   <p className="mt-1 text-xs text-gray-600">
                     {new Date(review.telegram_date).toLocaleDateString("ru")}

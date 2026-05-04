@@ -5,10 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { normalizeEmailForAuth } from "@/lib/auth/normalizeEmail";
 import { resetPasswordSchema, type ResetPasswordInput } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ callbackError }: { callbackError?: string }) {
   const [done, setDone] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -18,8 +19,8 @@ export function ResetPasswordForm() {
   async function onSubmit(data: ResetPasswordInput) {
     setServerError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-      redirectTo: `${window.location.origin}/callback?type=recovery&returnUrl=/login?reset=success`,
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmailForAuth(data.email), {
+      redirectTo: `${window.location.origin}/reset-password/update?returnUrl=/login?reset=success`,
     });
     if (error) { setServerError(error.message); return; }
     setDone(true);
@@ -36,6 +37,16 @@ export function ResetPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {callbackError === "expired" && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          Ссылка из письма истекла. Запросите новую ссылку для сброса пароля.
+        </p>
+      )}
+      {callbackError === "callback" && (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+          Ссылка недействительна. Запросите новое письмо для сброса пароля.
+        </p>
+      )}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
         <input

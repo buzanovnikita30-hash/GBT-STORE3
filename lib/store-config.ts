@@ -1,4 +1,4 @@
-import { CHATGPT_PLANS, PLUS_PLANS, PRO_PLANS, type ExtendedPlan } from "@/lib/chatgpt-data";
+import { CHATGPT_PLANS, type ExtendedPlan } from "@/lib/chatgpt-data";
 import type { LandingDiscount } from "@/lib/pricing-helpers";
 import { applyLandingDiscount, pickLandingDiscount } from "@/lib/pricing-helpers";
 import { fetchPromoCodesFromDb } from "@/lib/promocodes/db-promo";
@@ -23,6 +23,8 @@ export type LandingSectionsConfig = {
   showFaq: boolean;
   showCompare: boolean;
 };
+
+export type PlanAvailabilityConfig = Record<string, boolean>;
 
 export type StoreConfig = {
   plans: ExtendedPlan[];
@@ -62,10 +64,21 @@ function normalizePlan(input: unknown, fallback: ExtendedPlan): ExtendedPlan {
     isPopular: typeof p.isPopular === "boolean" ? p.isPopular : fallback.isPopular,
     features: Array.isArray(p.features) ? p.features.filter((x): x is string => typeof x === "string") : fallback.features,
     price: toNumber(p.price, fallback.price),
+    inStock: typeof p.inStock === "boolean" ? p.inStock : true,
   };
 }
 
-function normalizePlans(input: unknown): ExtendedPlan[] {
+function normalizePlanAvailability(input: unknown): PlanAvailabilityConfig {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const out: PlanAvailabilityConfig = {};
+  for (const [id, value] of Object.entries(input as Record<string, unknown>)) {
+    if (!id) continue;
+    out[id] = value !== false;
+  }
+  return out;
+}
+
+function normalizePlans(input: unknown, availability: PlanAvailabilityConfig): ExtendedPlan[] {
   if (!Array.isArray(input)) return DEFAULT_PLANS;
   const byId = new Map(DEFAULT_PLANS.map((p) => [p.id, p]));
   const normalized = input
@@ -73,11 +86,25 @@ function normalizePlans(input: unknown): ExtendedPlan[] {
     .map((raw) => {
       const id = typeof raw.id === "string" ? raw.id : "";
       const fallback = byId.get(id) ?? DEFAULT_PLANS[0];
-      return normalizePlan(raw, fallback);
+      const plan = normalizePlan(raw, fallback);
+      return { ...plan, inStock: availability[plan.id] !== false };
     })
     .filter((p) => !!p.id);
 
-  return normalized.length ? normalized : DEFAULT_PLANS;
+  if (!normalized.length) {
+    return DEFAULT_PLANS.map((plan) => ({ ...plan, inStock: availability[plan.id] !== false }));
+  }
+  return normalized;
+}
+
+/** Pro на витрине всегда из кода (5x / 20x): в БД часто лежит устаревший один тариф pro-1. Plus оставляем из БД. */
+function mergeCanonicalProPlans(plans: ExtendedPlan[], availability: PlanAvailabilityConfig): ExtendedPlan[] {
+  const plus = plans.filter((p) => p.productId !== "chatgpt-pro");
+  const canonicalPro = CHATGPT_PLANS.pro.map((p) => ({
+    ...p,
+    inStock: availability[p.id] !== false,
+  }));
+  return [...plus, ...canonicalPro];
 }
 
 function normalizePromoCodes(input: unknown): PromoCode[] {
@@ -143,7 +170,7 @@ export async function getStoreConfig(): Promise<StoreConfig> {
     const { data } = await supabase
       .from("site_settings")
       .select("key, value")
-      .in("key", ["pricing_plans", "promo_codes", "landing_sections"]);
+      .in("key", ["pricing_plans", "promo_codes", "landing_sections", "plan_availability"]);
 
     const map: Record<string, unknown> = {};
     for (const item of data ?? []) map[item.key] = item.value;
@@ -172,8 +199,12 @@ export async function getStoreConfig(): Promise<StoreConfig> {
       dbDiscounts = [];
     }
 
+    const availability = normalizePlanAvailability(map.plan_availability);
+
+    const mergedPlans = mergeCanonicalProPlans(normalizePlans(map.pricing_plans, availability), availability);
+
     return {
-      plans: applyLandingDiscountsToPlans(normalizePlans(map.pricing_plans), dbDiscounts),
+      plans: applyLandingDiscountsToPlans(mergedPlans, dbDiscounts),
       promoCodes: mergePromoCodes(normalizePromoCodes(map.promo_codes), dbPromos),
       landingSections: normalizeSections(map.landing_sections),
       landingDiscounts: dbDiscounts,

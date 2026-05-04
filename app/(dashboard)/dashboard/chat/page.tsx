@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 
 import { ChatWindow } from "@/components/chat/ChatWindow";
+import { TokenSafetyBlock } from "@/components/ui/TokenSafetyBlock";
 import { resolveServerRole } from "@/lib/auth/server-role";
 import { getOrCreateClientOperatorSession } from "@/lib/chat/operatorSession";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -73,16 +74,21 @@ export default async function DashboardChatPage() {
   );
 
   return (
-    <div className="-mx-4 -mb-4 flex w-[calc(100%+2rem)] flex-col md:-mx-6 md:-mb-6 md:w-[calc(100%+3rem)] lg:-mx-8 lg:-mb-8 lg:w-[calc(100%+4rem)]">
+    <div className="flex w-full flex-col md:-mx-6 md:-mb-6 md:w-[calc(100%+3rem)] lg:-mx-8 lg:-mb-8 lg:w-[calc(100%+4rem)]">
       <div className="flex min-h-[calc(100dvh-3.5rem)] w-full items-center justify-center md:min-h-screen">
         <div className="flex h-full w-full min-h-[calc(100dvh-3.5rem)] flex-col overflow-hidden bg-white md:min-h-screen md:border-x md:border-black/[0.07]">
-          <ChatWindow
-            currentUser={profile}
-            sessionId={session.id}
-            roomStatus={roomStatus}
-            otherPartyName="GBT STORE — поддержка"
-            viewerIsStaff={false}
-          />
+          <div className="shrink-0 border-b border-gray-100 bg-gray-50/80 p-3 sm:p-4">
+            <TokenSafetyBlock compact showSupportLink={false} className="bg-white" />
+          </div>
+          <div className="min-h-0 flex-1">
+            <ChatWindow
+              currentUser={profile}
+              sessionId={session.id}
+              roomStatus={roomStatus}
+              otherPartyName="GPT STORE — поддержка"
+              viewerIsStaff={false}
+            />
+          </div>
         </div>
       </div>
     </div>

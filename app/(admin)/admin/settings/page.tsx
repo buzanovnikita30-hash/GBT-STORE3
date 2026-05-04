@@ -18,8 +18,8 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-6 font-heading text-2xl font-bold text-gray-100">Настройки сайта</h1>
-      <div className="max-w-lg">
+      <h1 className="mb-6 font-heading text-2xl font-bold text-gray-900">Настройки сайта</h1>
+      <div className="max-w-3xl">
         <SettingsForm initialSettings={settingsMap} />
       </div>
     </div>

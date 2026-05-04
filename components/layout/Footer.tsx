@@ -15,7 +15,7 @@ export function Footer() {
         <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="font-heading text-lg font-semibold">
-              GBT <span className="text-primary">STORE</span>
+              GPT <span className="text-primary">STORE</span>
             </p>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               ChatGPT Plus и Spotify Premium: оплата картой РФ, активация за минуты, без иностранной карты.
@@ -43,7 +43,7 @@ export function Footer() {
           </ul>
         </div>
         <p className="mt-10 text-center text-xs text-muted-foreground md:text-left">
-          © {new Date().getFullYear()} GBT STORE. Все права защищены.
+          © {new Date().getFullYear()} GPT STORE. Все права защищены.
         </p>
       </div>
     </footer>

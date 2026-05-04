@@ -108,9 +108,9 @@ export function UsersRoleManager({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-white/[0.08] bg-gray-900/70 p-4">
-        <p className="text-sm font-semibold text-gray-100">Передача роли и данных</p>
-        <p className="mt-1 text-xs text-gray-400">
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <p className="text-sm font-semibold text-gray-900">Передача роли и данных</p>
+        <p className="mt-1 text-xs text-gray-600">
           Выберите уже зарегистрированный аккаунт. Ваша роль в системе не снимается; получателю
           выдаётся админ или оператор. При переносе данных заказы и чаты с вашего user_id
           привязываются к получателю (заметки и теги профиля объединяются).
@@ -122,7 +122,7 @@ export function UsersRoleManager({
             <select
               value={transferTargetId}
               onChange={(e) => setTransferTargetId(e.target.value)}
-              className="rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none focus:border-[#10a37f]"
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#10a37f]"
             >
               <option value="">— Кому передать —</option>
               {transferCandidates.map((u) => (
@@ -131,7 +131,7 @@ export function UsersRoleManager({
                 </option>
               ))}
             </select>
-            <div className="flex flex-wrap gap-4 text-xs text-gray-300">
+            <div className="flex flex-wrap gap-4 text-xs text-gray-700">
               <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="radio"
@@ -153,7 +153,7 @@ export function UsersRoleManager({
                 Администратор
               </label>
             </div>
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-400">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-600">
               <input
                 type="checkbox"
                 checked={transferMigrate}
@@ -174,9 +174,9 @@ export function UsersRoleManager({
         )}
       </div>
 
-      <div className="rounded-xl border border-white/[0.08] bg-gray-900/70 p-4">
-        <p className="text-sm font-semibold text-gray-100">Операторы поддержки</p>
-        <p className="mt-1 text-xs text-gray-400">
+      <div className="rounded-xl border border-gray-200 bg-white p-4">
+        <p className="text-sm font-semibold text-gray-900">Операторы поддержки</p>
+        <p className="mt-1 text-xs text-gray-600">
           Введите email аккаунта и назначьте роль оператора одним кликом.
         </p>
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -185,7 +185,7 @@ export function UsersRoleManager({
             value={operatorEmail}
             onChange={(e) => setOperatorEmail(e.target.value)}
             placeholder="operator@example.com"
-            className="flex-1 rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100 outline-none focus:border-[#10a37f]"
+            className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-[#10a37f]"
           />
           <button
             type="button"
@@ -198,10 +198,10 @@ export function UsersRoleManager({
         </div>
       </div>
 
-      {message && <p className="text-xs text-gray-400">{message}</p>}
-      <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
+      {message && <p className="text-xs text-gray-600">{message}</p>}
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
         <table className="w-full">
-          <thead className="border-b border-white/[0.07] bg-white/[0.02]">
+          <thead className="border-b border-gray-200 bg-gray-50">
             <tr className="text-left text-xs font-semibold uppercase tracking-widest text-gray-500">
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Telegram</th>
@@ -213,11 +213,11 @@ export function UsersRoleManager({
               <th className="px-4 py-3">Действие</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.05]">
+          <tbody className="divide-y divide-gray-100">
             {users.map((u) => (
-              <tr key={u.id} className="text-sm text-gray-300">
+              <tr key={u.id} className="text-sm text-gray-700">
                 <td className="px-4 py-3">{u.email ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-gray-400">
+                <td className="px-4 py-3 text-xs text-gray-500">
                   {u.telegram_username ? `@${u.telegram_username}` : "—"}
                 </td>
                 <td className="px-4 py-3">
@@ -229,7 +229,7 @@ export function UsersRoleManager({
                         [u.id]: e.target.value as UserItem["role"],
                       }))
                     }
-                    className="rounded-lg border border-white/10 bg-gray-900 px-2 py-1 text-xs text-gray-100"
+                    className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-800"
                   >
                     <option value="client">client</option>
                     <option value="operator">operator</option>
@@ -237,7 +237,7 @@ export function UsersRoleManager({
                   </select>
                 </td>
                 <td className="px-4 py-3 text-xs">{u.ordersCount}</td>
-                <td className="px-4 py-3 text-xs font-semibold text-emerald-300">
+                <td className="px-4 py-3 text-xs font-semibold text-emerald-600">
                   {u.paidTotal.toLocaleString("ru-RU")} ₽
                 </td>
                 <td className="px-4 py-3 text-xs text-gray-500">

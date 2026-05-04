@@ -13,12 +13,12 @@ interface CompareRow {
 }
 
 const ROWS: CompareRow[] = [
-  { feature: "GPT-4o доступ", plus: true, pro: true },
-  { feature: "o1 reasoning model", plus: "Ограниченно", pro: "Без лимитов" },
-  { feature: "o1 pro mode", plus: false, pro: true },
+  { feature: "ChatGPT 5.5 доступ", plus: true, pro: true },
+  { feature: "Скорость и глубина ответов ChatGPT 5.5", plus: "Стандарт", pro: "Максимум" },
+  { feature: "Режим без лимитов ChatGPT 5.5", plus: false, pro: true },
   { feature: "Генерация изображений", plus: "До 40/день", pro: "Безлимитно" },
   { feature: "Анализ файлов", plus: true, pro: true },
-  { feature: "Advanced Voice Mode", plus: "Базовый", pro: "Расширенный" },
+  { feature: "Голосовой режим", plus: "Базовый", pro: "Расширенный" },
   { feature: "Контекст окна", plus: "128k токенов", pro: "200k токенов" },
   { feature: "Приоритет в очереди", plus: false, pro: true },
 ];
@@ -48,7 +48,7 @@ export function CompareSection() {
             Сравнение
           </span>
           <h2 className="font-heading text-3xl font-bold text-gray-900 md:text-4xl">
-            Plus vs Pro
+            ChatGPT Plus vs ChatGPT Pro
           </h2>
           <p className="max-w-2xl text-lg text-gray-500">
             Детальное сравнение возможностей двух подписок
@@ -67,10 +67,10 @@ export function CompareSection() {
               Возможность
             </div>
             <div className="border-l border-black/[0.06] p-4 text-center text-sm font-bold text-[#10a37f]">
-              Plus
+              ChatGPT Plus
             </div>
             <div className="border-l border-black/[0.06] p-4 text-center text-sm font-bold text-[#1a56db]">
-              Pro
+              ChatGPT Pro
             </div>
           </div>
 

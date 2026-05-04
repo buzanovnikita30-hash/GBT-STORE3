@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { resolveServerRole } from "@/lib/auth/server-role";
+import { canSendChatEmailNotification } from "@/lib/chat/email-notification-throttle";
 import { resolveHumanSenderType } from "@/lib/chat/messageSender";
 import { getScriptedFaqAnswer, getSupportHandoffAutoReply } from "@/lib/chat/scriptedFaq";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { notifyNewMessage } from "@/lib/telegram/notifications";
+import {
+  notifyCustomerAboutChatMessage,
+  notifyNewMessage,
+  notifyStaffAboutChatMessage,
+} from "@/lib/telegram/notifications";
 
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get("sessionId")?.trim() ?? null;
@@ -122,6 +127,59 @@ export async function POST(req: NextRequest) {
   }
 
   await notifyNewMessage(sessionId, user?.email ?? null, content).catch(() => {});
+  if (senderType === "client") {
+    const { count: unreadForStaff } = await supabaseAdmin
+      .from("chat_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", sessionId)
+      .eq("sender_type", "client")
+      .eq("is_read", false);
+
+    // Шлем письмо только когда есть непрочитанные сообщения клиента.
+    if ((unreadForStaff ?? 0) > 0 && canSendChatEmailNotification(`staff:${sessionId}`)) {
+      const { data: staffRows } = await supabaseAdmin
+        .from("profiles")
+        .select("email")
+        .in("role", ["admin", "operator"])
+        .not("email", "is", null);
+      const recipients = (staffRows ?? [])
+        .map((row) => row.email?.trim().toLowerCase())
+        .filter((email): email is string => Boolean(email));
+
+      await notifyStaffAboutChatMessage({
+        fromEmail: user?.email ?? null,
+        messagePreview: content,
+        sessionId,
+        recipients,
+      }).catch(() => {});
+    }
+  } else if ((senderType === "operator" || senderType === "admin") && sessionRow.user_id) {
+    const { count: unreadForCustomer } = await supabaseAdmin
+      .from("chat_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", sessionId)
+      .in("sender_type", ["operator", "admin"])
+      .eq("is_read", false);
+
+    const { data: customerProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("email")
+      .eq("id", sessionRow.user_id)
+      .maybeSingle();
+
+    const customerEmail = customerProfile?.email?.trim();
+    // Шлем письмо только когда у клиента есть непрочитанные сообщения от staff.
+    if (customerEmail && (unreadForCustomer ?? 0) > 0) {
+      if (canSendChatEmailNotification(`customer:${sessionId}`)) {
+        await notifyCustomerAboutChatMessage({
+          customerEmail,
+          senderRoleLabel: senderType === "admin" ? "Администратор" : "Оператор",
+          messagePreview: content,
+          sessionId,
+        }).catch(() => {});
+      }
+    }
+  }
 
   let autoReply = null;
   if (!isStaff) {

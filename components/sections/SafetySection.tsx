@@ -23,10 +23,11 @@ export function SafetySection() {
             <Shield className="h-8 w-8 text-[#10a37f]" />
           </div>
           <h2 className="font-heading text-3xl font-bold text-gray-900 md:text-4xl">
-            Ваш аккаунт в безопасности
+            Честно про подключение и данные
           </h2>
           <p className="max-w-2xl text-lg text-gray-500">
-            Мы не получаем доступ к вашим данным, переписке или платёжной информации.
+            Пароль не запрашиваем. Если для подключения нужны данные сессии — вы передаёте их только в чат сайта
+            GPT STORE по инструкции; оплата проходит через Pally, СБП или карту РФ.
           </p>
         </motion.div>
 

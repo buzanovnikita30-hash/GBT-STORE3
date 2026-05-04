@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Send } from "lucide-react";
 import { motion } from "framer-motion";
 
+import { OPERATOR_CHAT_QUICK_REPLIES } from "@/lib/chat/scriptedFaq";
 import { cn } from "@/lib/utils";
 import type { ChatMessage } from "@/types";
 
@@ -16,14 +17,32 @@ export function GuestOperatorChat() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const forceScrollRef = useRef(false);
+  const lastSeenMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     isSendingRef.current = isSending;
   }, [isSending]);
 
+  const isNearBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return true;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceToBottom < 120;
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const lastMessageId = messages.at(-1)?.id ?? null;
+    const hasNewMessage = lastMessageId !== null && lastMessageId !== lastSeenMessageIdRef.current;
+
+    if (forceScrollRef.current || (hasNewMessage && isNearBottom())) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    forceScrollRef.current = false;
+    lastSeenMessageIdRef.current = lastMessageId;
   }, [messages]);
 
   useEffect(() => {
@@ -78,12 +97,13 @@ export function GuestOperatorChat() {
     };
   }, [sessionId]);
 
-  async function sendMessage() {
-    const text = input.trim();
+  async function sendMessage(content?: string) {
+    const text = (content ?? input).trim();
     if (!text || !sessionId || isSending) return;
 
     setIsSending(true);
     isSendingRef.current = true;
+    forceScrollRef.current = true;
     setInput("");
 
     const optimistic: ChatMessage = {
@@ -159,8 +179,11 @@ export function GuestOperatorChat() {
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+    <div className="flex h-full min-w-0 flex-col overflow-x-hidden">
+      <div
+        ref={messagesContainerRef}
+        className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4"
+      >
         {messages.length === 0 && (
           <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-600">
             Напишите сообщение, оператор ответит в этом чате.
@@ -192,29 +215,47 @@ export function GuestOperatorChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-black/[0.06] p-3">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void sendMessage();
-          }}
-          className="flex gap-2"
-        >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Напишите оператору..."
-            className="flex-1 rounded-xl border border-black/[0.1] px-3 py-2 text-sm outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
-          />
-          <button
-            type="submit"
-            disabled={isSending || !input.trim() || !sessionId}
-            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10a37f] text-white disabled:opacity-40"
+      <div className="sticky bottom-0 z-20 bg-white">
+        <div className="border-t border-black/[0.06] px-3 pt-2">
+          <div className="flex flex-wrap gap-1.5 pb-2 md:flex-nowrap md:overflow-x-auto md:[-ms-overflow-style:none] md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
+            {OPERATOR_CHAT_QUICK_REPLIES.map(({ label, message }) => (
+              <button
+                key={message}
+                type="button"
+                disabled={!sessionId || isSending}
+                onClick={() => void sendMessage(message)}
+                className="max-w-full rounded-full border border-[#10a37f]/35 px-3 py-1.5 text-xs font-medium text-[#10a37f] transition-colors hover:bg-[#10a37f]/10 disabled:opacity-40 md:shrink-0"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-black/[0.06] p-3">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void sendMessage();
+            }}
+            className="flex gap-2"
           >
-            {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-          </button>
-        </form>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Напишите оператору..."
+              className="flex-1 rounded-xl border border-black/[0.1] px-3 py-2 text-sm outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
+            />
+            <button
+              type="submit"
+              disabled={isSending || !input.trim() || !sessionId}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10a37f] text-white disabled:opacity-40"
+            >
+              {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

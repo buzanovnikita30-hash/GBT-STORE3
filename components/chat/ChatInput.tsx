@@ -177,7 +177,7 @@ export function ChatInput({ onSend, disabled, placeholder = "Напишите с
         </button>
       </div>
 
-      <p className="text-center text-xs text-gray-400">Enter — отправить · Shift+Enter — новая строка</p>
+      <p className="hidden text-center text-xs text-gray-400 sm:block">Enter — отправить · Shift+Enter — новая строка</p>
     </div>
   );
 }

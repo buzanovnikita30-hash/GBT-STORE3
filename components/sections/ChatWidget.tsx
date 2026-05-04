@@ -64,6 +64,36 @@ export function ChatWidget() {
   }, [user, fetchClientSession]);
 
   useEffect(() => {
+    if (!user || user.role === "admin" || user.role === "operator") return;
+    if (!session?.id) return;
+
+    const ch = supabase
+      .channel(`widget-unread:${session.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_messages",
+          filter: `session_id=eq.${session.id}`,
+        },
+        (payload) => {
+          const row = payload.new as { sender_type?: string };
+          if (row.sender_type === "operator" || row.sender_type === "admin") {
+            if (!open) {
+              setUnread((n) => n + 1);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [user, session?.id, supabase, open]);
+
+  useEffect(() => {
     if (open) setUnread(0);
   }, [open]);
 
@@ -161,7 +191,7 @@ export function ChatWidget() {
               currentUser={user}
               sessionId={session.id}
               roomStatus={session.status === "closed" ? "closed" : "open"}
-              otherPartyName="GBT STORE — поддержка"
+              otherPartyName="GPT STORE — поддержка"
               viewerIsStaff={false}
             />
           </div>

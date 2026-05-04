@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2 } from "lucide-react";
@@ -15,31 +15,73 @@ const ALL_PLANS = [...PLUS_PLANS, ...PRO_PLANS];
 
 const STEPS = ["Выбор тарифа", "Email аккаунта", "Оплата"];
 
-type PaymentMethod = "pally" | "crypto";
-
 export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }) {
   const searchParams = useSearchParams();
 
   const [step, setStep] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<ExtendedPlan | null>(null);
   const [accountEmail, setAccountEmail] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pally");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [runtimePlans] = useState<ExtendedPlan[]>(
+  const [runtimePlans, setRuntimePlans] = useState<ExtendedPlan[]>(
     initialPlans && initialPlans.length ? initialPlans : ALL_PLANS
   );
+  const plansHashRef = useRef(JSON.stringify(runtimePlans));
+  const selectedPlanIdRef = useRef<string | null>(null);
 
   // Предвыбор тарифа из URL (?plan=plus-std)
   useEffect(() => {
     const planId = searchParams.get("plan");
     if (planId) {
-      const found = runtimePlans.find((p) => p.id === planId);
+      const found = runtimePlans.find((p) => p.id === planId && p.inStock !== false);
       if (found) setSelectedPlan(found);
     }
   }, [searchParams, runtimePlans]);
+
+  useEffect(() => {
+    selectedPlanIdRef.current = selectedPlan?.id ?? null;
+  }, [selectedPlan]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncPlans() {
+      try {
+        const res = await fetch("/api/public/store-config", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as { plans?: ExtendedPlan[] };
+        const next = (json.plans ?? []).filter((p) => p?.id && p.price > 0);
+        if (!next.length) return;
+        const nextHash = JSON.stringify(next);
+        if (!cancelled && nextHash !== plansHashRef.current) {
+          plansHashRef.current = nextHash;
+          setRuntimePlans(next);
+          if (selectedPlanIdRef.current) {
+            const fresh = next.find((p) => p.id === selectedPlanIdRef.current);
+            if (fresh && fresh.inStock !== false) setSelectedPlan(fresh);
+            if (!fresh || fresh.inStock === false) setSelectedPlan(null);
+          }
+        }
+      } catch {
+        // no-op
+      }
+    }
+
+    void syncPlans();
+    const id = window.setInterval(() => {
+      void syncPlans();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   const { register, handleSubmit, formState: { errors } } = useForm<CheckoutStep2Input>({
     resolver: zodResolver(checkoutStep2Schema),
@@ -51,17 +93,12 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
   }
 
   async function onPaymentSubmit() {
-    if (!selectedPlan || !accountEmail || !agreeTerms) return;
+    if (!selectedPlan || selectedPlan.inStock === false || !accountEmail || !agreeTerms) return;
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const endpoint =
-        paymentMethod === "pally"
-          ? "/api/payments/pally/create"
-          : "/api/payments/crypto/create";
-
-      const res = await fetch(endpoint, {
+      const res = await fetch("/api/payments/pally/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ planId: selectedPlan.id, accountEmail, promoCode: promoCode.trim().toUpperCase() || null }),
@@ -126,13 +163,17 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
           >
             <h2 className="font-heading text-xl font-bold text-gray-900 mb-6">Выберите тариф</h2>
             <div className="space-y-3">
-              {runtimePlans.filter(p => p.price > 0).map((plan) => (
+              {runtimePlans.filter((p) => p.price > 0).map((plan) => (
                 <button
                   key={plan.id}
                   type="button"
-                  onClick={() => setSelectedPlan(plan)}
+                  onClick={() => {
+                    if (plan.inStock === false) return;
+                    setSelectedPlan(plan);
+                  }}
+                  disabled={plan.inStock === false}
                   className={cn(
-                    "w-full rounded-2xl border p-4 text-left transition-all",
+                    "w-full rounded-2xl border p-4 text-left transition-all disabled:cursor-not-allowed disabled:opacity-70",
                     selectedPlan?.id === plan.id
                       ? "border-[#10a37f] bg-[#10a37f]/4 shadow-sm"
                       : "border-black/[0.08] bg-white hover:border-[#10a37f]/40"
@@ -147,11 +188,16 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
                             {plan.badge}
                           </span>
                         )}
+                        {plan.inStock === false && (
+                          <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                            Нет в наличии
+                          </span>
+                        )}
                       </div>
                       <p className="mt-0.5 text-xs text-gray-400">{plan.description}</p>
                     </div>
                     <div className="text-right">
-                      <span className="font-heading text-xl font-bold text-gray-900">
+                      <span className="font-heading text-xl font-bold text-gray-900 whitespace-nowrap">
                         {plan.price.toLocaleString("ru")} ₽
                       </span>
                       <p className="text-xs text-gray-400">/ {plan.period}</p>
@@ -162,7 +208,7 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
             </div>
             <button
               type="button"
-              disabled={!selectedPlan}
+              disabled={!selectedPlan || selectedPlan.inStock === false}
               onClick={() => setStep(2)}
               className="mt-6 flex w-full items-center justify-center rounded-xl bg-[#10a37f] py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
@@ -204,11 +250,11 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
                 )}
               </div>
 
-              <TokenSafetyBlock compact={true} className="mt-4" />
+              <TokenSafetyBlock compact={true} className="mt-4" supportHref="/dashboard/chat" />
 
               <p className="text-xs text-amber-700 rounded-xl bg-amber-50 border border-amber-200/50 px-4 py-3">
-                После оплаты мы свяжемся с вами в чате и попросим временный токен для активации подписки.
-                Инструкцию как его получить — пришлём тоже.
+                После оплаты напишите в чат сайта GPT STORE — там же будет инструкция по данным сессии. На email мы
+                не отправляем эту инструкцию, только короткие статусы заказа.
               </p>
 
               <div className="flex gap-3">
@@ -238,40 +284,21 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
           >
-            <h2 className="font-heading text-xl font-bold text-gray-900 mb-2">Выберите способ оплаты</h2>
+            <h2 className="font-heading text-xl font-bold text-gray-900 mb-2">Оплата</h2>
+            <p className="mb-5 text-sm text-gray-500">
+              Оплата доступна через Pally, СБП и банковскую карту РФ — вы перейдёте на защищённую страницу
+              провайдера.
+            </p>
 
             {/* Summary */}
             {selectedPlan && (
               <div className="mb-5 flex items-center justify-between rounded-xl border border-black/[0.07] bg-gray-50 px-4 py-3">
                 <span className="text-sm text-gray-600">{selectedPlan.name}</span>
-                <span className="font-semibold text-gray-900">{selectedPlan.price.toLocaleString("ru")} ₽</span>
+                <span className="font-semibold text-gray-900 whitespace-nowrap">
+                  {selectedPlan.price.toLocaleString("ru")} ₽
+                </span>
               </div>
             )}
-
-            {/* Payment methods */}
-            <div className="space-y-3 mb-5">
-              {[
-                { id: "pally" as const, label: "Карта РФ / СБП", hint: "Быстро — Pally" },
-                { id: "crypto" as const, label: "Крипто (USDT/BTC)", hint: "Для оплаты криптовалютой" },
-              ].map((method) => (
-                <button
-                  key={method.id}
-                  type="button"
-                  onClick={() => setPaymentMethod(method.id)}
-                  className={cn(
-                    "w-full rounded-xl border p-4 text-left transition-all",
-                    paymentMethod === method.id
-                      ? "border-[#10a37f] bg-[#10a37f]/4"
-                      : "border-black/[0.08] bg-white hover:border-[#10a37f]/30"
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-900">{method.label}</span>
-                    <span className="text-xs text-gray-400">{method.hint}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
 
             {/* Terms consent */}
             <div className="mb-4">

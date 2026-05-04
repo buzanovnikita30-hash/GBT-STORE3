@@ -51,7 +51,7 @@ const QUICK_PRESETS: QuickPreset[] = [
     label: "Pro -1000 ₽ (30 дней)",
     discount_type: "fixed",
     discount_value: 1000,
-    plan_ids: ["pro-1"],
+    plan_ids: ["pro-20x"],
     max_uses: 100,
     periodDays: 30,
   },
@@ -195,33 +195,33 @@ export function PromocodesManager() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-400">Загрузка…</p>;
+    return <p className="text-sm text-gray-600">Загрузка…</p>;
   }
 
   return (
     <div className="space-y-8">
-      {err && <p className="text-sm text-red-400">{err}</p>}
+      {err && <p className="text-sm text-red-600">{err}</p>}
 
-      <form onSubmit={create} className="space-y-3 rounded-xl border border-white/[0.08] bg-gray-900 p-4">
-        <p className="text-sm font-semibold text-gray-200">Новый промокод</p>
+      <form onSubmit={create} className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+        <p className="text-sm font-semibold text-gray-900">Новый промокод</p>
         <div className="flex flex-wrap gap-2">
           {QUICK_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyPreset(p)}
-              className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300 hover:border-[#10a37f]/50 hover:text-white"
+              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 hover:border-[#10a37f]/40"
             >
               {p.label}
             </button>
           ))}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Код
             <div className="mt-1 flex gap-2">
               <input
-                className="w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
                 value={form.code}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
                 required
@@ -229,16 +229,16 @@ export function PromocodesManager() {
               <button
                 type="button"
                 onClick={() => setForm((f) => ({ ...f, code: generatePromoCode() }))}
-                className="rounded-lg border border-white/10 px-3 py-2 text-xs text-gray-300 hover:text-white"
+                className="rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:text-gray-900"
               >
                 Сгенерировать
               </button>
             </div>
           </label>
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Тип
             <select
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.discount_type}
               onChange={(e) =>
                 setForm((f) => ({ ...f, discount_type: e.target.value as "percent" | "fixed" }))
@@ -248,21 +248,21 @@ export function PromocodesManager() {
               <option value="fixed">Фикс (₽)</option>
             </select>
           </label>
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Значение
             <input
               type="number"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.discount_value}
               onChange={(e) => setForm((f) => ({ ...f, discount_value: Number(e.target.value) }))}
               min={1}
               required
             />
           </label>
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Лимит активаций
             <div className="mt-1 flex items-center gap-3">
-              <label className="inline-flex items-center gap-2 text-xs text-gray-300">
+              <label className="inline-flex items-center gap-2 text-xs text-gray-700">
                 <input
                   type="checkbox"
                   checked={form.use_limit}
@@ -272,7 +272,7 @@ export function PromocodesManager() {
               </label>
               <input
                 type="number"
-                className="w-28 rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100 disabled:opacity-50"
+                className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 disabled:opacity-50"
                 value={form.max_uses}
                 onChange={(e) => setForm((f) => ({ ...f, max_uses: Number(e.target.value) || 1 }))}
                 min={1}
@@ -280,10 +280,10 @@ export function PromocodesManager() {
               />
             </div>
           </label>
-          <label className="text-xs text-gray-400 md:col-span-2">
+          <label className="text-xs text-gray-600 md:col-span-2">
             Тарифы
-            <div className="mt-1 rounded-lg border border-white/10 bg-gray-950 p-3">
-              <label className="mb-2 inline-flex items-center gap-2 text-xs text-gray-300">
+            <div className="mt-1 rounded-lg border border-gray-200 bg-white p-3">
+              <label className="mb-2 inline-flex items-center gap-2 text-xs text-gray-700">
                 <input
                   type="checkbox"
                   checked={form.selected_plan_ids.length === 0}
@@ -297,7 +297,7 @@ export function PromocodesManager() {
                 {planOptions.map((p) => {
                   const checked = form.selected_plan_ids.includes(p.id);
                   return (
-                    <label key={p.id} className="inline-flex items-center gap-2 text-xs text-gray-300">
+                    <label key={p.id} className="inline-flex items-center gap-2 text-xs text-gray-700">
                       <input
                         type="checkbox"
                         checked={checked}
@@ -317,10 +317,10 @@ export function PromocodesManager() {
               </div>
             </div>
           </label>
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Срок действия
             <select
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.period_mode}
               onChange={(e) =>
                 setForm((f) => ({ ...f, period_mode: e.target.value as "none" | "7d" | "30d" | "custom" }))
@@ -334,20 +334,20 @@ export function PromocodesManager() {
           </label>
           {form.period_mode === "custom" && (
             <>
-              <label className="text-xs text-gray-400">
+              <label className="text-xs text-gray-600">
                 Срок с
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
                   value={form.valid_from}
                   onChange={(e) => setForm((f) => ({ ...f, valid_from: e.target.value }))}
                 />
               </label>
-              <label className="text-xs text-gray-400">
+              <label className="text-xs text-gray-600">
                 Срок по
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
                   value={form.valid_until}
                   onChange={(e) => setForm((f) => ({ ...f, valid_until: e.target.value }))}
                 />
@@ -364,25 +364,25 @@ export function PromocodesManager() {
       </form>
 
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-200">Список</p>
-        <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.08]">
+        <p className="text-sm font-semibold text-gray-900">Список</p>
+        <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
           {items.map((row) => (
             <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
               <div>
                 <span className="font-mono font-semibold text-[#10a37f]">{row.code}</span>
-                <span className="ml-2 text-gray-400">
+                <span className="ml-2 text-gray-600">
                   {row.discount_type === "percent" ? `${row.discount_value}%` : `${row.discount_value} ₽`}
                 </span>
                 <span className="ml-2 text-xs text-gray-500">
                   использовано {row.uses_count}
                   {row.max_uses != null ? ` / ${row.max_uses}` : ""}
                 </span>
-                {!row.is_active && <span className="ml-2 text-xs text-amber-400">выкл</span>}
+                {!row.is_active && <span className="ml-2 text-xs text-amber-600">выкл</span>}
               </div>
               <button
                 type="button"
                 onClick={() => void toggle(row)}
-                className="text-xs text-gray-400 underline hover:text-gray-200"
+                className="text-xs text-gray-600 underline hover:text-gray-900"
               >
                 {row.is_active ? "Отключить" : "Включить"}
               </button>

@@ -192,41 +192,41 @@ export function DiscountsManager() {
   };
 
   if (loading) {
-    return <p className="text-sm text-gray-400">Загрузка…</p>;
+    return <p className="text-sm text-gray-600">Загрузка…</p>;
   }
 
   return (
     <div className="space-y-8">
-      {err && <p className="text-sm text-red-400">{err}</p>}
+      {err && <p className="text-sm text-red-600">{err}</p>}
 
-      <form onSubmit={create} className="space-y-3 rounded-xl border border-white/[0.08] bg-gray-900 p-4">
-        <p className="text-sm font-semibold text-gray-200">Новая скидка на витрине</p>
+      <form onSubmit={create} className="space-y-3 rounded-xl border border-gray-200 bg-white p-4">
+        <p className="text-sm font-semibold text-gray-900">Новая скидка на витрине</p>
         <div className="flex flex-wrap gap-2">
           {QUICK_PRESETS.map((p) => (
             <button
               key={p.id}
               type="button"
               onClick={() => applyPreset(p)}
-              className="rounded-full border border-white/10 px-3 py-1 text-xs text-gray-300 hover:border-[#10a37f]/50 hover:text-white"
+              className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700 hover:border-[#10a37f]/40"
             >
               {p.label}
             </button>
           ))}
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <label className="text-xs text-gray-400 md:col-span-2">
+          <label className="text-xs text-gray-600 md:col-span-2">
             Название (для бейджа на сайте)
             <input
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
             />
           </label>
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Тип
             <select
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.discount_type}
               onChange={(e) =>
                 setForm((f) => ({ ...f, discount_type: e.target.value as "percent" | "fixed" }))
@@ -236,21 +236,21 @@ export function DiscountsManager() {
               <option value="fixed">Фикс (₽)</option>
             </select>
           </label>
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Значение
             <input
               type="number"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.discount_value}
               onChange={(e) => setForm((f) => ({ ...f, discount_value: Number(e.target.value) }))}
               min={1}
               required
             />
           </label>
-          <label className="text-xs text-gray-400 md:col-span-2">
+          <label className="text-xs text-gray-600 md:col-span-2">
             Куда применять скидку
             <select
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.scope}
               onChange={(e) => setForm((f) => ({ ...f, scope: e.target.value as Scope }))}
             >
@@ -262,10 +262,10 @@ export function DiscountsManager() {
             </select>
           </label>
           {form.scope === "custom-plan" && (
-            <label className="text-xs text-gray-400 md:col-span-2">
+            <label className="text-xs text-gray-600 md:col-span-2">
               Выберите тариф
               <select
-                className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
                 value={form.custom_plan_id}
                 onChange={(e) => setForm((f) => ({ ...f, custom_plan_id: e.target.value }))}
               >
@@ -277,10 +277,10 @@ export function DiscountsManager() {
               </select>
             </label>
           )}
-          <label className="text-xs text-gray-400">
+          <label className="text-xs text-gray-600">
             Срок действия
             <select
-              className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+              className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
               value={form.period_mode}
               onChange={(e) =>
                 setForm((f) => ({ ...f, period_mode: e.target.value as "none" | "7d" | "30d" | "custom" }))
@@ -294,20 +294,20 @@ export function DiscountsManager() {
           </label>
           {form.period_mode === "custom" && (
             <>
-              <label className="text-xs text-gray-400">
+              <label className="text-xs text-gray-600">
                 Срок с
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
                   value={form.valid_from}
                   onChange={(e) => setForm((f) => ({ ...f, valid_from: e.target.value }))}
                 />
               </label>
-              <label className="text-xs text-gray-400">
+              <label className="text-xs text-gray-600">
                 Срок по
                 <input
                   type="datetime-local"
-                  className="mt-1 w-full rounded-lg border border-white/10 bg-gray-950 px-3 py-2 text-sm text-gray-100"
+                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900"
                   value={form.valid_until}
                   onChange={(e) => setForm((f) => ({ ...f, valid_until: e.target.value }))}
                 />
@@ -324,22 +324,22 @@ export function DiscountsManager() {
       </form>
 
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-gray-200">Список</p>
-        <ul className="divide-y divide-white/[0.06] rounded-xl border border-white/[0.08]">
+        <p className="text-sm font-semibold text-gray-900">Список</p>
+        <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
           {items.map((row) => (
             <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
               <div>
-                <span className="font-medium text-gray-100">{row.name}</span>
-                <span className="ml-2 text-gray-400">
+                <span className="font-medium text-gray-900">{row.name}</span>
+                <span className="ml-2 text-gray-600">
                   {row.discount_type === "percent" ? `${row.discount_value}%` : `${row.discount_value} ₽`}
                 </span>
                 <span className="ml-2 text-xs text-gray-500">→ {row.applies_to}</span>
-                {!row.is_active && <span className="ml-2 text-xs text-amber-400">выкл</span>}
+                {!row.is_active && <span className="ml-2 text-xs text-amber-600">выкл</span>}
               </div>
               <button
                 type="button"
                 onClick={() => void toggle(row)}
-                className="text-xs text-gray-400 underline hover:text-gray-200"
+                className="text-xs text-gray-600 underline hover:text-gray-900"
               >
                 {row.is_active ? "Отключить" : "Включить"}
               </button>

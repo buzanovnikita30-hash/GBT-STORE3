@@ -2,7 +2,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { createPallyPayment } from "@/lib/payments/pally";
 import { CHATGPT_PLANS } from "@/lib/chatgpt-data";
-import { notifyCustomerOrderCreated, notifyNewOrder } from "@/lib/telegram/notifications";
+import {
+  notifyCustomerOrderCreated,
+  notifyNewOrder,
+  notifyOperationalFailure,
+} from "@/lib/telegram/notifications";
 import { applyPromo, findPromo, getStoreConfig, splitPlans } from "@/lib/store-config";
 
 export async function POST(request: NextRequest) {
@@ -32,6 +36,9 @@ export async function POST(request: NextRequest) {
     const plan = allPlans.find((p) => p.id === planId);
     if (!plan) {
       return NextResponse.json({ error: "Тариф не найден" }, { status: 400 });
+    }
+    if (plan.inStock === false) {
+      return NextResponse.json({ error: "Этот тариф временно отсутствует в наличии" }, { status: 400 });
     }
 
     const promo = findPromo(config.promoCodes, promoCode, plan.id);
@@ -67,14 +74,23 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-    const payment = await createPallyPayment({
-      orderId: order.id,
-      amount: finalPrice,
-      description: `GBT STORE: ${plan.name}`,
-      returnUrl: `${appUrl}/checkout/success`,
-      webhookUrl: `${appUrl}/api/payments/pally/webhook`,
-      customerEmail: user.email ?? undefined,
-    });
+    let payment: { paymentId: string; paymentUrl: string };
+    try {
+      payment = await createPallyPayment({
+        orderId: order.id,
+        amount: finalPrice,
+        description: `GPT STORE: ${plan.name}`,
+        returnUrl: `${appUrl}/checkout/success`,
+        webhookUrl: `${appUrl}/api/payments/pally/webhook`,
+        customerEmail: user.email ?? undefined,
+      });
+    } catch (payErr) {
+      await notifyOperationalFailure({
+        context: "Ошибка создания платежа Pally",
+        detail: payErr instanceof Error ? payErr.message : undefined,
+      }).catch(() => {});
+      throw payErr;
+    }
 
     await supabase
       .from("orders")

@@ -10,7 +10,7 @@ export default function CheckoutLayout({
     <div className="flex min-h-screen flex-col bg-gray-50">
       <header className="flex h-14 items-center justify-between border-b border-black/[0.06] bg-white px-6">
         <Link href="/" className="font-heading text-sm font-semibold text-gray-900 hover:text-[#10a37f] transition-colors">
-          GBT STORE
+          GPT STORE
         </Link>
         <div className="flex items-center gap-1.5 text-xs text-gray-500">
           <ShieldCheck size={14} className="text-[#10a37f]" />

@@ -10,6 +10,7 @@ type Payload = {
   pricing_plans?: unknown;
   promo_codes?: unknown;
   landing_sections?: unknown;
+  plan_availability?: unknown;
 };
 
 export async function POST(request: NextRequest) {

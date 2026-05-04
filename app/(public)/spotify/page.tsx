@@ -56,7 +56,7 @@ const PLANS = [
 
 const STEPS = [
   { num: "1", title: "Выбираете тариф", desc: "Выбираете подходящий план и переходите к оформлению" },
-  { num: "2", title: "Оплачиваете", desc: "Оплата картой РФ, СБП или криптовалютой — без иностранной карты" },
+  { num: "2", title: "Оплачиваете", desc: "Оплата через Pally, СБП или банковскую карту РФ — без иностранной карты" },
   { num: "3", title: "Мы активируем", desc: "Наш специалист активирует Premium на вашем аккаунте за 5 минут" },
 ];
 
@@ -246,7 +246,7 @@ export default function SpotifyPage() {
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Также подключаем</p>
                       <h3 className="font-heading text-lg font-bold text-gray-900">ChatGPT Plus</h3>
-                      <p className="text-sm text-gray-500">GPT-4o, DALL·E 3, анализ файлов — оплата картой РФ</p>
+                      <p className="text-sm text-gray-500">ChatGPT 5.5, DALL·E 3, анализ файлов — оплата картой РФ</p>
                     </div>
                   </div>
                   <Link

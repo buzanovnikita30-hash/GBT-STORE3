@@ -42,20 +42,30 @@ export async function POST(request: NextRequest) {
       updateData.status = "activating";
     }
 
+    const newStatus = String(updateData.status);
+
     await supabase.from("orders").update(updateData).eq("id", orderId);
 
     const becamePaidLike =
       !["paid", "activating", "active", "waiting_client"].includes(order.status) &&
-      (updateData.status === "activating" || internalStatus === "paid");
+      (newStatus === "activating" || internalStatus === "paid");
     if (becamePaidLike) {
       const meta = order.meta as Record<string, unknown> | null;
       const promoCode = typeof meta?.promo_code === "string" ? meta.promo_code : null;
       await incrementPromocodeUsage(supabase, promoCode).catch(() => undefined);
     }
 
+    const planTitle =
+      (order as { plan_name?: string | null }).plan_name?.trim() || order.plan_id;
+
     await notifyPaymentStatus(
-      { id: order.id, plan_name: order.plan_id, price: order.price, account_email: order.account_email ?? undefined },
-      internalStatus
+      {
+        id: order.id,
+        plan_name: planTitle,
+        price: order.price,
+        account_email: order.account_email ?? undefined,
+      },
+      newStatus
     );
     if (order.user_id) {
       const { data: profile } = await supabase
@@ -67,8 +77,8 @@ export async function POST(request: NextRequest) {
         await notifyCustomerOrderStatus({
           customerEmail: profile.email,
           orderId: order.id,
-          planName: order.plan_id,
-          status: updateData.status as string,
+          planName: planTitle,
+          status: newStatus,
           price: order.price,
         }).catch(() => {});
       }

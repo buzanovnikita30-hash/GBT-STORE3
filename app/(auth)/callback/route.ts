@@ -11,49 +11,104 @@ function copyCookies(from: NextResponse, to: NextResponse) {
   });
 }
 
+function verifyEmailErrorRedirect(request: NextRequest, kind: "expired" | "used" | "callback") {
+  const target = new URL("/verify-email", request.url);
+  target.searchParams.set("error", kind);
+  return NextResponse.redirect(target);
+}
+
+function recoveryErrorRedirect(request: NextRequest, kind: "expired" | "callback") {
+  const target = new URL("/reset-password", request.url);
+  target.searchParams.set("error", kind);
+  return NextResponse.redirect(target);
+}
+
+function classifyExchangeError(message: string): "expired" | "used" | "callback" {
+  const m = message.toLowerCase();
+  if (m.includes("expired") || m.includes("flow_state") || m.includes("invalid flow")) {
+    return "expired";
+  }
+  if (m.includes("already been") || m.includes("already registered")) {
+    return "used";
+  }
+  return "callback";
+}
+
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;
   const code = url.searchParams.get("code");
   const type = url.searchParams.get("type");
-  const rawReturnUrl = url.searchParams.get("returnUrl") ?? "/dashboard";
+  const oauthErr = url.searchParams.get("error");
+  const errCode = url.searchParams.get("error_code");
+  const errDesc = (url.searchParams.get("error_description") ?? "").replace(/\+/g, " ");
+  const rawReturnUrl = url.searchParams.get("returnUrl") ?? "/cabinet";
   const returnUrl =
-    rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "/dashboard";
+    rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "/cabinet";
 
   if (type === "recovery") {
+    if (oauthErr || errCode) {
+      const blob = `${errCode ?? ""} ${errDesc} ${oauthErr ?? ""}`.toLowerCase();
+      if (
+        blob.includes("expired") ||
+        errCode === "otp_expired" ||
+        errCode === "flow_state_expired"
+      ) {
+        return recoveryErrorRedirect(request, "expired");
+      }
+      return recoveryErrorRedirect(request, "callback");
+    }
+
     const update = new URL("/reset-password/update", request.url);
     update.searchParams.set("returnUrl", returnUrl);
-    let response = NextResponse.redirect(update);
+    const response = NextResponse.redirect(update);
 
-    if (code) {
-      const supabase = createServerClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return request.cookies.getAll();
-            },
-            setAll(cookiesToSet) {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                response.cookies.set(name, value, options);
-              });
-            },
+    if (!code) {
+      return recoveryErrorRedirect(request, "callback");
+    }
+
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
           },
-        }
-      );
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) {
-        const login = new URL("/login", request.url);
-        login.searchParams.set("error", "recovery");
-        return NextResponse.redirect(login);
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
       }
+    );
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return recoveryErrorRedirect(request, "expired");
     }
 
     return response;
   }
 
+  if (type !== "recovery") {
+    if (oauthErr || errCode) {
+      const blob = `${errCode ?? ""} ${errDesc} ${oauthErr ?? ""}`.toLowerCase();
+      if (
+        blob.includes("expired") ||
+        errCode === "otp_expired" ||
+        errCode === "flow_state_expired"
+      ) {
+        return verifyEmailErrorRedirect(request, "expired");
+      }
+      if (blob.includes("already")) {
+        return verifyEmailErrorRedirect(request, "used");
+      }
+      return verifyEmailErrorRedirect(request, "callback");
+    }
+  }
+
   const provisional = new URL(returnUrl, request.url);
-  let response = NextResponse.redirect(provisional);
+  const response = NextResponse.redirect(provisional);
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -75,10 +130,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      const login = new URL("/login", request.url);
-      login.searchParams.set("error", "callback");
-      login.searchParams.set("returnUrl", returnUrl);
-      return NextResponse.redirect(login);
+      return verifyEmailErrorRedirect(request, classifyExchangeError(error.message));
     }
   }
 

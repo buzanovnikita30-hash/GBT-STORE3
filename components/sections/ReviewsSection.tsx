@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { fadeUp, staggerContainer } from "@/lib/motion-config";
+import { fadeUp } from "@/lib/motion-config";
 import type { PublicReview } from "@/lib/reviews/publicReviews";
 
 function ReviewCard({ review }: { review: PublicReview }) {

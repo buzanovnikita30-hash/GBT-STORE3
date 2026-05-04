@@ -15,6 +15,7 @@ export function resolvePostLoginPath(returnUrl: string, role: UserRole): string 
     }
     if (
       safe.startsWith("/dashboard") ||
+      safe.startsWith("/cabinet") ||
       safe === "/" ||
       safe.startsWith("/support") ||
       safe.startsWith("/login") ||

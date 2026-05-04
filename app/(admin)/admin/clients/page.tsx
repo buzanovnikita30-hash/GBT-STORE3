@@ -148,8 +148,8 @@ export default async function AdminClientsPage({
 
   return (
     <div className="p-6">
-      <h1 className="mb-2 font-heading text-2xl font-bold text-gray-100">Клиенты</h1>
-      <p className="mb-6 text-sm text-gray-400">
+      <h1 className="mb-2 font-heading text-2xl font-bold text-gray-900">Клиенты</h1>
+      <p className="mb-6 text-sm text-gray-600">
         Все аккаунты по ролям + все сохранённые клиентские поля из профиля и заказов.
       </p>
       <div className="mb-4 flex flex-wrap gap-2 text-xs">
@@ -166,8 +166,8 @@ export default async function AdminClientsPage({
               href={f.key === "all" ? "/admin/clients" : `/admin/clients?role=${f.key}`}
               className={
                 active
-                  ? "rounded-full border border-[#10a37f]/50 bg-[#10a37f]/20 px-3 py-1 text-[#7df0ce]"
-                  : "rounded-full border border-white/10 px-3 py-1 text-gray-400 hover:text-gray-200"
+                  ? "rounded-full border border-[#10a37f]/30 bg-[#10a37f]/10 px-3 py-1 text-[#0f7d62]"
+                  : "rounded-full border border-gray-200 bg-white px-3 py-1 text-gray-600 hover:text-gray-900"
               }
             >
               {f.label}
@@ -176,9 +176,9 @@ export default async function AdminClientsPage({
         })}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
-        <table className="w-full min-w-[1320px] text-left text-sm text-gray-300">
-          <thead className="border-b border-white/[0.08] bg-gray-900/80 text-xs uppercase text-gray-500">
+      <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+        <table className="w-full min-w-[1320px] text-left text-sm text-gray-700">
+          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
             <tr>
               <th className="px-4 py-3">Клиент</th>
               <th className="px-4 py-3">Роль</th>
@@ -194,7 +194,7 @@ export default async function AdminClientsPage({
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.06]">
+          <tbody className="divide-y divide-gray-100">
             {(clients ?? []).map((c) => {
               const list = ordersByUser.get(c.id) ?? [];
               const active = list.find((o) => o.status === "active");
@@ -208,7 +208,7 @@ export default async function AdminClientsPage({
               return (
                 <tr key={c.id} className={rowHi}>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-gray-100">{c.username ?? "—"}</p>
+                    <p className="font-medium text-gray-900">{c.username ?? "—"}</p>
                     <p className="text-xs text-gray-500">{c.email ?? "—"}</p>
                   </td>
                   <td className="px-4 py-3 text-xs">{c.role}</td>
@@ -217,9 +217,9 @@ export default async function AdminClientsPage({
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {c.has_profile ? (
-                      <span className="text-emerald-300">есть</span>
+                      <span className="text-emerald-600">есть</span>
                     ) : (
-                      <span className="text-amber-300">нет (только auth)</span>
+                      <span className="text-amber-600">нет (только auth)</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400">

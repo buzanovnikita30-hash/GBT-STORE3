@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
   if (!plan || plan.price <= 0) {
     return NextResponse.json({ error: "Plan not found" }, { status: 400 });
   }
+  if (plan.inStock === false) {
+    return NextResponse.json({ error: "Plan is out of stock" }, { status: 400 });
+  }
 
   const promo = findPromo(config.promoCodes, parsed.data.promoCode, plan.id);
   const { finalPrice, discountValue } = applyPromo(plan.price, promo);
@@ -77,7 +80,7 @@ export async function POST(request: NextRequest) {
     const payment = await createCryptoPayment({
       orderId: order.id,
       amount: amountUsd,
-      description: `GBT STORE — ${plan.name}`,
+      description: `GPT STORE — ${plan.name}`,
       returnUrl: `${appUrl}/checkout/success?order=${order.id}`,
     });
 

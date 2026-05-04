@@ -3,7 +3,6 @@ import { AnimateSection } from "@/components/ui/AnimateSection";
 import { ChatGptLandingNav } from "@/components/sections/ChatGptLandingNav";
 import { ChatWidget } from "@/components/sections/ChatWidget";
 import { CompareSection } from "@/components/sections/CompareSection";
-import { CrossSellSection } from "@/components/sections/CrossSellSection";
 import { FaqSection } from "@/components/sections/FaqSection";
 import { FinalCtaSection } from "@/components/sections/FinalCtaSection";
 import { GuaranteeSection } from "@/components/sections/GuaranteeSection";
@@ -13,6 +12,7 @@ import { PricingSection } from "@/components/sections/PricingSection";
 import { ReviewsSection } from "@/components/sections/ReviewsSection";
 import { RussiaSection } from "@/components/sections/RussiaSection";
 import { SafetySection } from "@/components/sections/SafetySection";
+import { StoreConfigAutoRefresh } from "@/components/sections/StoreConfigAutoRefresh";
 import { Ticker } from "@/components/sections/Ticker";
 import { TokenSafetySection } from "@/components/sections/TokenSafetySection";
 import { WhyCheaperSection } from "@/components/sections/WhyCheaperSection";
@@ -29,10 +29,10 @@ export const metadata: Metadata = {
   description:
     "Подключаем ChatGPT Plus и Pro на ваш аккаунт. Оплата картой РФ, активация за 5–15 минут, гарантия на весь срок.",
   openGraph: {
-    title: "ChatGPT Plus без иностранной карты — GBT STORE",
+    title: "ChatGPT Plus без иностранной карты — GPT STORE",
     description: "Подключаем ChatGPT Plus и Pro. Оплата картой РФ, активация за 5–15 минут.",
     url: APP_URL,
-    siteName: "GBT STORE",
+    siteName: "GPT STORE",
     locale: "ru_RU",
     type: "website",
   },
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "GBT STORE",
+  name: "GPT STORE",
   url: APP_URL,
   description: "Подключение ChatGPT Plus и Pro для пользователей из России. Оплата картой РФ.",
   contactPoint: {
@@ -66,6 +66,7 @@ export default async function HomePage() {
     />
     <div className="relative text-gray-900">
       <div className="relative z-10">
+        <StoreConfigAutoRefresh />
         <ChatGptLandingNav />
         <main>
           <HeroSection />
@@ -88,7 +89,6 @@ export default async function HomePage() {
           {storeConfig.landingSections.showFaq && (
             <AnimateSection delay={0.05}><FaqSection /></AnimateSection>
           )}
-          <AnimateSection delay={0.05}><CrossSellSection /></AnimateSection>
           <AnimateSection delay={0.05}><FinalCtaSection /></AnimateSection>
         </main>
         <LandingFooter />

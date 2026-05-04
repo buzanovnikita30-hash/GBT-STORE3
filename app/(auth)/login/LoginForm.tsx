@@ -15,11 +15,12 @@ import type { UserRole } from "@/types/database";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawReturnUrl = searchParams.get("returnUrl") ?? "/dashboard";
+  const initialEmail = (searchParams.get("email") ?? "").trim();
+  const rawReturnUrl = searchParams.get("returnUrl") ?? "/cabinet";
   const returnUrl =
     rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//")
       ? rawReturnUrl
-      : "/dashboard";
+      : "/cabinet";
   const [showPass, setShowPass] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -29,7 +30,10 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: initialEmail, password: "" },
+  });
 
   async function onSubmit(data: LoginInput) {
     setServerError(null);
@@ -142,7 +146,6 @@ export function LoginForm() {
         {isSubmitting && <Loader2 size={15} className="animate-spin" />}
         Войти
       </button>
-
     </form>
   );
 }

@@ -25,10 +25,10 @@ export function FinalCtaSection() {
           Готовы начать?
         </span>
         <h2 className="font-heading text-3xl font-bold text-gray-900 md:text-5xl">
-          Подключение за 5–15 минут
+          Подключите Plus или Pro за 5–15 минут
         </h2>
         <p className="mt-4 text-base text-gray-500 md:text-lg">
-          Гарантия включена. Без иностранной карты. Поддержка 24/7.
+          Доступ к актуальной версии ChatGPT 5.5. Без иностранной карты. Гарантия и поддержка 24/7.
         </p>
 
         <div className="mt-10">
@@ -42,7 +42,7 @@ export function FinalCtaSection() {
               boxShadow: "0 4px 30px rgba(16,163,127,0.35)",
             }}
           >
-            Подключить ChatGPT Plus
+            Выбрать подписку
             <ArrowRight size={20} />
           </motion.a>
         </div>

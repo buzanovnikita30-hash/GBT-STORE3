@@ -65,7 +65,7 @@ const FAQ_SCRIPTED_ANSWERS: Record<string, string> = {
   "Как оформить заказ?":
     "Выберите подходящий тариф, оплатите и отправьте данные для активации. Подключение обычно занимает 5-15 минут.",
   "Сколько стоит подписка?":
-    "Актуальные цены: Plus — 1 490 / 1 990 / 2 490 ₽, Pro — 14 990 ₽.",
+    "Актуальные цены всегда показаны в блоке тарифов на сайте и автоматически обновляются при изменениях в админке.",
   "Есть ли гарантия на подписку?":
     "Да. Если активация не проходит по нашей стороне, мы оформляем возврат.",
   "Как активировать ChatGPT Plus?":
@@ -77,7 +77,7 @@ const FAQ_SCRIPTED_ANSWERS: Record<string, string> = {
   "Когда будет готова подписка?":
     "Обычно подписка готова в течение 5-15 минут после оплаты и передачи данных.",
   "Можно ли оплатить картой РФ?":
-    "Да, оплата из РФ доступна: карта, СБП или крипта.",
+    "Да. Оплата доступна через Pally, СБП и банковскую карту РФ.",
   "Работаете ли вы в выходные?":
     "Да, поддержка работает ежедневно, включая выходные.",
   "Как связаться с поддержкой?":
@@ -284,7 +284,7 @@ export default function SupportPage() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#10a37f] text-sm font-bold text-white">
               G
             </div>
-            <span className="font-heading text-sm font-bold text-white">GBT STORE</span>
+            <span className="font-heading text-sm font-bold text-white">GPT STORE</span>
           </a>
         </div>
 
@@ -340,7 +340,7 @@ export default function SupportPage() {
                   G
                 </div>
                 <div>
-                  <p className="font-semibold text-white">GBT STORE — поддержка</p>
+                  <p className="font-semibold text-white">GPT STORE — поддержка</p>
                   <p className="flex items-center gap-1 text-xs text-white/80">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                     На связи

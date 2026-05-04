@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { resolveServerRole } from "@/lib/auth/server-role";
+import { AdminAlertsBar } from "@/components/admin/AdminAlertsBar";
 import {
   LayoutDashboard, ShoppingBag, MessageCircle,
   Star, Settings, Users, UserCircle, Percent, Tag,
@@ -43,11 +44,11 @@ export default async function AdminLayout({
   );
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-gray-100">
-      <aside className="hidden w-52 flex-col border-r border-white/[0.07] md:flex">
-        <div className="flex h-14 items-center border-b border-white/[0.07] px-4">
-          <span className="font-heading text-sm font-semibold text-gray-200">
-            GBT Admin
+    <div className="flex min-h-screen bg-gray-50">
+      <aside className="hidden w-52 flex-col bg-[#111827] md:flex">
+        <div className="flex h-14 items-center border-b border-white/10 px-4">
+          <span className="font-heading text-sm font-semibold text-white">
+            GPT STORE Admin
           </span>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2">
@@ -55,14 +56,14 @@ export default async function AdminLayout({
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-400 transition-colors hover:bg-white/[0.06] hover:text-gray-100"
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
             >
               <item.icon size={15} />
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="border-t border-white/[0.07] p-2">
+        <div className="border-t border-white/10 p-2">
           <Link
             href="/login?switch=1"
             className="mb-1 flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-gray-500 hover:text-gray-300"
@@ -85,7 +86,10 @@ export default async function AdminLayout({
           </Link>
         </div>
       </aside>
-      <div className="flex-1">{children}</div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AdminAlertsBar />
+        {children}
+      </div>
     </div>
   );
 }

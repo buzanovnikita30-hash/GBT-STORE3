@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Разрешаем локальные dev-origin'ы, чтобы статика /_next не ломалась
+  // при открытии сайта через localhost и 127.0.0.1.
+  allowedDevOrigins: ["http://127.0.0.1:3000", "http://localhost:3000"],
   typescript: {
     ignoreBuildErrors: true,
   },

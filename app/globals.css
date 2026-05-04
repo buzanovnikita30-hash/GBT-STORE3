@@ -73,13 +73,6 @@ body {
   color: #111827;
 }
 
-/* Кастомный курсор — только на hover-устройствах */
-@media (hover: hover) and (pointer: fine) {
-  *, *::before, *::after {
-    cursor: none !important;
-  }
-}
-
 /* Shimmer-блики на кнопках */
 @keyframes shimmer-slide {
   0% { transform: translateX(-100%) skewX(-15deg); }

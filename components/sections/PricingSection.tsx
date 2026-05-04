@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { PLUS_PLANS, PRO_PLANS, PRODUCTS, type ProductId } from "@/lib/chatgpt-data";
 import { fadeUp } from "@/lib/motion-config";
@@ -17,15 +17,70 @@ export function PricingSection({
   initialLandingDiscounts?: unknown[];
 }) {
   const [activeProduct, setActiveProduct] = useState<ProductId>("chatgpt-plus");
-  const [runtimePlans] = useState<RuntimePlan[]>(
+  const [runtimePlans, setRuntimePlans] = useState<RuntimePlan[]>(
     initialPlans && initialPlans.length ? initialPlans : [...PLUS_PLANS, ...PRO_PLANS]
   );
+  const lastPlansHashRef = useRef(JSON.stringify(runtimePlans));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function syncPlans() {
+      try {
+        const res = await fetch("/api/public/store-config", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        if (!res.ok) return;
+
+        const json = (await res.json()) as {
+          plans?: Array<
+            RuntimePlan & {
+              id?: string;
+              productId?: ProductId;
+            }
+          >;
+        };
+
+        const nextPlans = (json.plans ?? []).filter(
+          (p): p is RuntimePlan =>
+            Boolean(p?.id) && (p.productId === "chatgpt-plus" || p.productId === "chatgpt-pro")
+        );
+        if (!nextPlans.length) return;
+
+        const nextHash = JSON.stringify(nextPlans);
+        if (!cancelled && nextHash !== lastPlansHashRef.current) {
+          lastPlansHashRef.current = nextHash;
+          setRuntimePlans(nextPlans);
+        }
+      } catch {
+        // Тихий фолбэк: оставляем текущие цены, если API временно недоступен.
+      }
+    }
+
+    // Первичная синхронизация и периодическое автообновление витринных скидок.
+    void syncPlans();
+    const intervalId = window.setInterval(() => {
+      void syncPlans();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, []);
 
   const plans = useMemo(
     () => runtimePlans.filter((p) => p.productId === activeProduct),
     [runtimePlans, activeProduct]
   );
   const product = PRODUCTS.find((p) => p.id === activeProduct)!;
+  const isProDualCompare =
+    activeProduct === "chatgpt-pro" && plans.length >= 2 && plans.every((p) => p.productId === "chatgpt-pro");
+  const isPlusTripleCompare =
+    activeProduct === "chatgpt-plus" &&
+    plans.length >= 3 &&
+    plans.every((p) => p.productId === "chatgpt-plus");
 
   return (
     <section id="pricing" className="relative overflow-hidden py-20 md:py-28">
@@ -53,7 +108,7 @@ export function PricingSection({
             Выберите подписку
           </h2>
           <p className="max-w-2xl text-lg text-gray-500">
-            Plus для ежедневных задач — Pro для профессиональной работы
+            ChatGPT 5.5 для ежедневных задач — ChatGPT 5.5 Pro для профессиональной работы
           </p>
         </motion.div>
 
@@ -88,7 +143,7 @@ export function PricingSection({
           </div>
         </div>
 
-        {/* Product description */}
+        {/* Описание продукта + чипы */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeProduct + "-desc"}
@@ -96,26 +151,149 @@ export function PricingSection({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="mb-12 flex flex-col items-center justify-center gap-4 text-center sm:flex-row"
+            className={`mx-auto w-full max-w-5xl ${isProDualCompare || isPlusTripleCompare ? "mb-10" : "mb-12"}`}
           >
-            <p className="max-w-lg text-sm text-gray-500">{product.description}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {product.features.map((f) => (
-                <span
-                  key={f}
-                  className="rounded-full border px-2.5 py-1 text-xs"
-                  style={{
-                    color: product.accentColor,
-                    background: product.glowColor,
-                    borderColor: `${product.accentColor}30`,
-                  }}
-                >
-                  {f}
-                </span>
-              ))}
+            <div className="flex flex-col items-center justify-center gap-4 text-center sm:flex-row md:gap-8">
+              <p className="max-w-xl text-base leading-relaxed text-gray-600 sm:text-left">{product.description}</p>
+              <div className="flex shrink-0 flex-wrap justify-center gap-2 sm:justify-end">
+                {product.features.map((f) => (
+                  <span
+                    key={f}
+                    className="rounded-full border px-2.5 py-1 text-xs font-medium"
+                    style={{
+                      color: product.accentColor,
+                      background: product.glowColor,
+                      borderColor: `${product.accentColor}30`,
+                    }}
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
             </div>
           </motion.div>
         </AnimatePresence>
+
+        {/* Plus: три варианта — наглядно чем отличаются */}
+        {isPlusTripleCompare && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.35 }}
+            className="mb-10"
+          >
+            <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              Три тарифа — отличаются цена и скорость подключения
+            </p>
+            <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-3 md:gap-4">
+              <div className="relative overflow-hidden rounded-2xl border border-slate-200/95 bg-gradient-to-br from-slate-50/50 via-white to-white p-4 shadow-sm shadow-slate-500/5 md:p-5">
+                <p className="relative text-xs font-bold uppercase tracking-wider text-slate-500">Новые аккаунты</p>
+                <p className="relative mt-1 font-heading text-base font-bold text-slate-900 md:text-lg">
+                  Не было Plus — ниже цена
+                </p>
+                <p className="relative mt-2 text-xs leading-relaxed text-slate-700/90 md:text-sm">
+                  Подходит только для аккаунта без истории Plus. Активация в общей очереди.
+                </p>
+                <div className="relative mt-3 flex h-2 overflow-hidden rounded-full bg-slate-200/80">
+                  <div className="h-full w-[32%] rounded-full bg-slate-500" />
+                </div>
+                <p className="relative mt-1.5 text-[10px] font-medium text-slate-500 md:text-[11px]">Очередь: стандартная</p>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl border-2 border-[#10a37f]/85 bg-gradient-to-br from-emerald-50/95 via-white to-white p-4 shadow-lg shadow-emerald-600/15 ring-2 ring-[#10a37f]/20 md:p-5">
+                <span className="relative inline-flex rounded-full bg-[#10a37f] px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow-sm">
+                  Главный выбор
+                </span>
+                <p className="relative mt-2 text-xs font-bold uppercase tracking-wider text-emerald-800">Популярный</p>
+                <p className="relative mt-1 font-heading text-base font-bold text-gray-900 md:text-lg">
+                  Цена и очередь
+                </p>
+                <p className="relative mt-2 text-xs leading-relaxed text-gray-700 md:text-sm">
+                  Универсальный вариант для ежедневного использования — тот же Plus, что и в других тарифах.
+                </p>
+                <div className="relative mt-3 flex h-2 overflow-hidden rounded-full bg-emerald-100">
+                  <div className="h-full w-[72%] rounded-full bg-[#10a37f]" />
+                </div>
+                <p className="relative mt-1.5 text-[10px] font-medium text-emerald-800 md:text-[11px]">Очередь: общая</p>
+              </div>
+              <div className="relative overflow-hidden rounded-2xl border-2 border-amber-500/75 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/35 p-4 shadow-md shadow-amber-500/12 ring-1 ring-amber-300/40 md:p-5">
+                <span className="relative inline-flex rounded-full border border-amber-400/90 bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-950">
+                  Приоритет скорости
+                </span>
+                <p className="relative mt-2 text-xs font-bold uppercase tracking-wider text-orange-900">Быстрая активация</p>
+                <p className="relative mt-1 font-heading text-base font-bold text-orange-950 md:text-lg">
+                  Вне очереди — быстрее
+                </p>
+                <p className="relative mt-2 text-xs leading-relaxed text-orange-950/90 md:text-sm">
+                  Приоритетное подключение: обычно 5–15 минут после передачи данных, без ожидания общей очереди.
+                </p>
+                <div className="relative mt-3 flex h-2 overflow-hidden rounded-full bg-amber-200/80">
+                  <div className="h-full w-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500" />
+                </div>
+                <p className="relative mt-1.5 text-[10px] font-medium text-orange-900 md:text-[11px]">Очередь: приоритет</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Pro 5x vs 20x — явное сравнение перед карточками */}
+        {isProDualCompare && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-40px" }}
+            transition={{ duration: 0.35 }}
+            className="mb-10"
+          >
+            <p className="mb-4 text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-400">
+              Одинаковые функции — разные лимиты
+            </p>
+            <div className="mx-auto grid w-full max-w-5xl auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch">
+              <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-sky-400/70 bg-gradient-to-br from-sky-50 via-white to-white p-5 shadow-md shadow-sky-500/10 md:p-6">
+                <div className="absolute right-2 top-1 text-[4.75rem] font-black leading-none text-sky-300/95 drop-shadow-[0_2px_10px_rgba(14,165,233,0.22)] select-none md:text-[5rem]">
+                  5×
+                </div>
+                <div className="relative flex min-h-[1.375rem] items-center">
+                  <span className="invisible rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">Максимум</span>
+                </div>
+                <p className="relative mt-2 text-xs font-bold uppercase tracking-wider text-sky-700">Pro 5x</p>
+                <p className="relative mt-1 font-heading text-xl font-bold text-sky-950 md:text-2xl">
+                  Лимиты ≈ в 5 раз выше Plus
+                </p>
+                <p className="relative mt-2 flex-1 text-sm leading-relaxed text-sky-900/85 md:min-h-[4.5rem]">
+                  Для активной работы несколько часов в день: тексты, код, повседневные задачи. Иногда можно упереться в
+                  лимит.
+                </p>
+                <div className="relative mt-4 shrink-0 flex h-2.5 overflow-hidden rounded-full bg-sky-200/60">
+                  <div className="h-full w-[28%] rounded-full bg-sky-500" title="относительная нагрузка" />
+                </div>
+                <p className="relative mt-1.5 shrink-0 text-[11px] font-medium text-sky-700/80">Нагрузка: умеренная</p>
+              </div>
+              <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border-2 border-emerald-600/80 bg-gradient-to-br from-emerald-50 via-white to-amber-50/40 p-5 shadow-md shadow-emerald-600/12 ring-1 ring-amber-400/30 md:p-6">
+                <div className="absolute right-2 top-1 text-[4.75rem] font-black leading-none text-emerald-300/95 drop-shadow-[0_2px_10px_rgba(5,150,105,0.22)] select-none md:text-[5rem]">
+                  20×
+                </div>
+                <div className="relative flex min-h-[1.375rem] items-center">
+                  <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-950">
+                    Максимум
+                  </span>
+                </div>
+                <p className="relative mt-2 text-xs font-bold uppercase tracking-wider text-emerald-800">Pro 20x</p>
+                <p className="relative mt-1 font-heading text-xl font-bold text-emerald-950 md:text-2xl">
+                  Лимиты ≈ в 20 раз выше Plus
+                </p>
+                <p className="relative mt-2 flex-1 text-sm leading-relaxed text-emerald-950/90 md:min-h-[4.5rem]">
+                  Почти безлимит: целый день без остановки. Бизнес, автоматизация, несколько проектов — когда лимиты
+                  реально мешают работе.
+                </p>
+                <div className="relative mt-4 shrink-0 flex h-2.5 overflow-hidden rounded-full bg-emerald-200/50">
+                  <div className="h-full w-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500" />
+                </div>
+                <p className="relative mt-1.5 shrink-0 text-[11px] font-medium text-emerald-800/90">Нагрузка: высокая / без остановки</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Plan cards */}
         <AnimatePresence mode="wait">
@@ -125,9 +303,14 @@ export function PricingSection({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.35 }}
-            className="grid grid-cols-1 gap-6 md:grid-cols-3"
+            className={
+              isProDualCompare
+                ? "mx-auto grid w-full max-w-5xl auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch"
+                : "grid grid-cols-1 gap-6 md:grid-cols-3"
+            }
           >
             {plans.map((plan, index) => {
+              const isInStock = plan.inStock !== false;
               const original = plan.original_price ?? plan.price;
               const displayPrice = plan.price;
               const discountLabel = plan.landing_discount_name ?? null;
@@ -137,6 +320,95 @@ export function PricingSection({
                   ? `Подключить за ${displayPrice.toLocaleString("ru")} ${plan.currency}`
                   : plan.cta;
 
+              const proTier = plan.id === "pro-5x" ? "5x" : plan.id === "pro-20x" ? "20x" : null;
+              const plusTier =
+                plan.productId === "chatgpt-plus"
+                  ? plan.id === "plus-new"
+                    ? "new"
+                    : plan.id === "plus-fast"
+                      ? "fast"
+                      : plan.id === "plus-std"
+                        ? "std"
+                        : null
+                  : null;
+
+              const proCardShell =
+                proTier === "5x"
+                  ? "border-2 border-sky-400/80 shadow-md shadow-sky-500/10"
+                  : proTier === "20x"
+                    ? "border-2 border-emerald-600/85 shadow-md shadow-emerald-600/10"
+                    : "";
+              const plusCardShell =
+                plusTier === "new"
+                  ? "border border-slate-200/95 bg-slate-50/30 ring-1 ring-slate-100/90"
+                  : plusTier === "fast"
+                    ? "border-2 border-amber-500/75 ring-1 ring-amber-300/45 shadow-md shadow-amber-500/10"
+                    : plusTier === "std"
+                      ? "border-2 border-[#10a37f]/85 ring-2 ring-emerald-200/50 shadow-lg shadow-emerald-600/12"
+                      : "";
+              const tierShell = proCardShell || plusCardShell;
+
+              const proGlow =
+                proTier === "5x"
+                  ? "rgba(14, 165, 233, 0.12)"
+                  : proTier === "20x"
+                    ? "rgba(5, 150, 105, 0.14)"
+                    : product.glowColor;
+              const plusGlow =
+                plusTier === "new"
+                  ? "rgba(71, 85, 105, 0.14)"
+                  : plusTier === "fast"
+                    ? "rgba(234, 88, 12, 0.14)"
+                    : plusTier === "std"
+                      ? "rgba(16, 163, 127, 0.18)"
+                      : product.glowColor;
+
+              const proAccent = proTier === "5x" ? "#0284c7" : proTier === "20x" ? "#059669" : product.accentColor;
+              const plusAccent =
+                plusTier === "new" ? "#475569" : plusTier === "fast" ? "#c2410c" : plusTier === "std" ? "#10a37f" : product.accentColor;
+
+              const cardAccent = proTier ? proAccent : plusTier ? plusAccent : product.accentColor;
+              const cardGlow = proTier ? proGlow : plusTier ? plusGlow : product.glowColor;
+
+              const isHeroCta =
+                plan.isPopular && (activeProduct === "chatgpt-pro" || activeProduct === "chatgpt-plus");
+              const isSecondaryPlusCta = activeProduct === "chatgpt-plus" && plusTier === "fast";
+
+              const articleShadow = (() => {
+                if (proTier) {
+                  if (plan.isPopular)
+                    return {
+                      boxShadow: `0 0 0 4px ${proGlow}, 0 12px 40px -12px rgba(5,150,105,0.22)`,
+                    };
+                  if (proTier === "20x")
+                    return {
+                      boxShadow: `0 8px 30px -10px rgba(5, 150, 105, 0.14)`,
+                    };
+                  return {
+                    boxShadow: `0 8px 30px -10px rgba(14, 165, 233, 0.14)`,
+                  };
+                }
+                if (plusTier) {
+                  if (plusTier === "std" && plan.isPopular)
+                    return {
+                      boxShadow: `0 0 0 4px ${plusGlow}, 0 18px 52px -14px rgba(16, 163, 127, 0.28)`,
+                    };
+                  if (plusTier === "fast")
+                    return {
+                      boxShadow: `0 0 0 3px rgba(251, 146, 60, 0.2), 0 12px 38px -12px rgba(234, 88, 12, 0.18)`,
+                    };
+                  if (plusTier === "std")
+                    return { boxShadow: `0 8px 24px -14px rgba(15, 23, 42, 0.06)` };
+                  if (plusTier === "new") return { boxShadow: `0 6px 20px -12px rgba(71, 85, 105, 0.08)` };
+                }
+                if (plan.isPopular)
+                  return {
+                    border: `1.5px solid ${product.accentColor}`,
+                    boxShadow: `0 0 0 4px ${product.glowColor}`,
+                  };
+                return { border: "1px solid rgba(0,0,0,0.08)" };
+              })();
+
               return (
               <motion.article
                 key={plan.id}
@@ -144,41 +416,61 @@ export function PricingSection({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.08, duration: 0.4 }}
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                className="relative flex flex-col rounded-2xl bg-white p-7 shadow-sm"
-                style={
-                  plan.isPopular
-                    ? {
-                        border: `1.5px solid ${product.accentColor}`,
-                        boxShadow: `0 0 0 4px ${product.glowColor}`,
-                      }
-                    : { border: "1px solid rgba(0,0,0,0.08)" }
-                }
+                className={`relative flex flex-col rounded-2xl bg-white p-7 shadow-sm ${tierShell} ${isProDualCompare ? "h-full min-h-0" : ""}`}
+                style={articleShadow}
               >
-                {(plan.badge || (showDiscount && discountLabel)) && (
+                {(plan.badge || !isInStock) && (
                   <div className="absolute -top-3.5 left-1/2 flex -translate-x-1/2 flex-wrap justify-center gap-1">
                     {plan.badge && (
                     <span
                       className="rounded-full px-4 py-1 text-xs font-bold text-white"
-                      style={{ background: product.accentColor }}
+                      style={{ background: cardAccent }}
                     >
                       {plan.badge}
                     </span>
                     )}
-                    {showDiscount && discountLabel && (
-                      <span className="rounded-full bg-amber-500 px-3 py-1 text-[10px] font-bold text-white">
-                        {discountLabel}
+                    {!isInStock && (
+                      <span className="rounded-full bg-red-500 px-3 py-1 text-[10px] font-bold text-white">
+                        Нет в наличии
                       </span>
                     )}
                   </div>
                 )}
 
-                <div className="mb-6">
-                  <p className="mb-3 text-sm font-semibold text-gray-700">{plan.name}</p>
-                  <div className="flex items-baseline gap-1.5">
+                <div className={`mb-6 shrink-0 ${isProDualCompare ? "min-h-[4.25rem]" : ""}`}>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-gray-700">{plan.name}</p>
+                    {proTier === "5x" && (
+                      <span className="rounded-md bg-sky-100 px-2 py-0.5 font-heading text-xs font-black text-sky-800 ring-1 ring-sky-300/60">
+                        ×5 к Plus
+                      </span>
+                    )}
+                    {proTier === "20x" && (
+                      <span className="rounded-md bg-emerald-100 px-2 py-0.5 font-heading text-xs font-black text-emerald-900 ring-1 ring-emerald-400/70">
+                        ×20 к Plus
+                      </span>
+                    )}
+                    {plusTier === "new" && (
+                      <span className="rounded-md bg-slate-100 px-2 py-0.5 font-heading text-xs font-bold text-slate-800 ring-1 ring-slate-300/70">
+                        Новый аккаунт
+                      </span>
+                    )}
+                    {plusTier === "std" && (
+                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 font-heading text-xs font-bold text-emerald-900 ring-1 ring-[#10a37f]/35">
+                        Универсально
+                      </span>
+                    )}
+                    {plusTier === "fast" && (
+                      <span className="rounded-md bg-amber-100 px-2 py-0.5 font-heading text-xs font-bold text-orange-900 ring-1 ring-amber-400/80">
+                        Вне очереди
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
                     {plan.price > 0 ? (
                       <>
                         {showDiscount && (
-                          <span className="mr-1 font-heading text-xl font-semibold text-gray-400 line-through">
+                          <span className="font-heading text-lg font-semibold text-gray-400 line-through">
                             {original.toLocaleString("ru")}
                           </span>
                         )}
@@ -193,21 +485,33 @@ export function PricingSection({
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-gray-400">/ {plan.period}</p>
+                  <div className="mt-1 flex min-h-[1.5rem] items-center justify-between gap-2">
+                    <p className="text-xs text-gray-400">/ {plan.period}</p>
+                    {showDiscount && discountLabel ? (
+                      <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 ring-1 ring-amber-300/80">
+                        <span className="text-xs font-extrabold uppercase tracking-wide text-amber-800">Скидка</span>
+                        <span className="text-[11px] font-semibold text-amber-700">{discountLabel}</span>
+                      </div>
+                    ) : (
+                      <span className="invisible inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs">
+                        Скидка
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-2 text-sm text-gray-500">{plan.description}</p>
                 </div>
 
-                <ul className="mb-8 flex-1 space-y-2.5">
+                <ul className={`flex-1 space-y-2.5 ${isProDualCompare ? "mb-0" : "mb-8"}`}>
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
                       <span
                         className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full"
-                        style={{ background: product.glowColor }}
+                        style={{ background: cardGlow }}
                       >
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                           <path
                             d="M1.5 4l2 2 3-3"
-                            stroke={product.accentColor}
+                            stroke={cardAccent}
                             strokeWidth="1.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -219,45 +523,55 @@ export function PricingSection({
                   ))}
                 </ul>
 
-                <div className="relative">
-                  {plan.isPopular && (
-                    <div
-                      className="absolute inset-0 rounded-xl pointer-events-none"
-                      style={{
-                        animation: "pulse-ring 2s ease-in-out infinite",
-                        border: `2px solid ${product.accentColor}`,
-                      }}
-                    />
-                  )}
-                  {plan.price > 0 ? (
+                <div className="relative mt-auto shrink-0 pt-2">
+                  {plan.price > 0 && isInStock ? (
                     <motion.a
                       href={`/checkout?plan=${plan.id}`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="shimmer-btn flex w-full items-center justify-center rounded-xl py-3.5 text-sm font-semibold transition-all"
+                      className={`shimmer-btn flex h-11 w-full items-center justify-center rounded-xl px-4 text-sm transition-all ${
+                        proTier ? "font-extrabold" : "font-semibold"
+                      }`}
                       style={
                         plan.isPopular
                           ? {
-                              background: product.accentColor,
+                              background: cardAccent,
                               color: "white",
-                              boxShadow: `0 4px 20px ${product.glowColor}`,
+                              boxShadow:
+                                activeProduct === "chatgpt-pro"
+                                  ? `0 8px 32px -4px ${proTier === "20x" ? "rgba(5,150,105,0.45)" : cardGlow}, 0 2px 8px rgba(0,0,0,0.08)`
+                                  : `0 8px 32px -4px rgba(16,163,127,0.4), 0 2px 8px rgba(0,0,0,0.06)`,
                             }
+                          : proTier
+                            ? {
+                                background: proTier === "5x" ? "#0284c7" : "#059669",
+                                color: "white",
+                                border: "1.5px solid transparent",
+                                boxShadow:
+                                  proTier === "5x"
+                                    ? "0 6px 20px -8px rgba(2,132,199,0.45)"
+                                    : "0 6px 20px -8px rgba(5,150,105,0.45)",
+                              }
+                            : plusTier === "fast"
+                              ? {
+                                  background: "#f97316",
+                                  color: "white",
+                                  border: "1.5px solid transparent",
+                                  boxShadow: "0 6px 20px -8px rgba(249,115,22,0.45)",
+                                }
                           : {
                               background: "transparent",
-                              border: "1.5px solid rgba(0,0,0,0.12)",
-                              color: "#374151",
+                              border: `1.5px solid ${proTier || plusTier ? `${cardAccent}55` : "rgba(0,0,0,0.12)"}`,
+                              color: proTier || plusTier ? cardAccent : "#374151",
                             }
                       }
                     >
                       {ctaText}
                     </motion.a>
                   ) : (
-                    <a
-                      href="/support"
-                      className="flex w-full items-center justify-center rounded-xl border border-black/[0.12] py-3.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#10a37f]/40 hover:text-[#10a37f]"
-                    >
-                      Узнать стоимость
-                    </a>
+                    <span className="flex h-11 w-full items-center justify-center rounded-xl border border-black/[0.12] bg-gray-100 px-4 text-sm font-semibold text-gray-500">
+                      {isInStock ? "Уточняйте цену" : "Временно нет в наличии"}
+                    </span>
                   )}
                 </div>
               </motion.article>
@@ -267,7 +581,7 @@ export function PricingSection({
         </AnimatePresence>
 
         <p className="mt-8 text-center text-sm text-gray-400">
-          Оплата через Pally · СБП · Карта РФ · Крипто — Без иностранной карты
+          Оплата через Pally, СБП и банковскую карту РФ — без иностранной карты
         </p>
       </div>
     </section>

@@ -6,10 +6,31 @@ import type { ChatMessage, Profile } from "@/types";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { formatDate } from "@/lib/chat/constants";
+import { OPERATOR_CHAT_QUICK_REPLIES } from "@/lib/chat/scriptedFaq";
 import { cn } from "@/lib/utils";
 import type { ChatRoomListItem } from "@/types/chat-ui";
 
 type RoomStatus = NonNullable<ChatRoomListItem["status"]> | "open" | "closed" | "waiting";
+
+function playClientPing() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value = 660;
+    g.gain.setValueAtTime(0.05, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    o.start(ctx.currentTime);
+    o.stop(ctx.currentTime + 0.1);
+    window.setTimeout(() => ctx.close(), 200);
+  } catch {
+    /* noop */
+  }
+}
 
 interface ChatWindowProps {
   currentUser: Profile;
@@ -34,11 +55,22 @@ export function ChatWindow({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [headerPulse, setHeaderPulse] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const forceScrollRef = useRef(false);
+  const lastSeenMessageIdRef = useRef<string | null>(null);
   const supabase = createClient();
 
   const scrollToBottom = useCallback((smooth = true) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto" });
+  }, []);
+
+  const isNearBottom = useCallback(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return true;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceToBottom < 120;
   }, []);
 
   const loadMessages = useCallback(async (opts?: { silent?: boolean }) => {
@@ -69,8 +101,16 @@ export function ChatWindow({
   }, [loadMessages]);
 
   useEffect(() => {
-    if (messages.length > 0) scrollToBottom(messages.length > 1);
-  }, [messages, scrollToBottom]);
+    const lastMessageId = messages.at(-1)?.id ?? null;
+    const hasNewMessage = lastMessageId !== null && lastMessageId !== lastSeenMessageIdRef.current;
+
+    if (messages.length > 0 && (forceScrollRef.current || (hasNewMessage && isNearBottom()))) {
+      scrollToBottom(messages.length > 1);
+    }
+
+    forceScrollRef.current = false;
+    lastSeenMessageIdRef.current = lastMessageId;
+  }, [messages, scrollToBottom, isNearBottom]);
 
   useEffect(() => {
     const channel = supabase
@@ -83,7 +123,30 @@ export function ChatWindow({
           table: "chat_messages",
           filter: `session_id=eq.${sessionId}`,
         },
-        () => {
+        (payload) => {
+          const row = payload.new as ChatMessage;
+          if (
+            !viewerIsStaff &&
+            row?.sender_type &&
+            ["operator", "admin"].includes(row.sender_type) &&
+            row.sender_id !== currentUser.id
+          ) {
+            setHeaderPulse(true);
+            window.setTimeout(() => setHeaderPulse(false), 1600);
+            if (typeof document !== "undefined" && document.hidden) {
+              playClientPing();
+              if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                try {
+                  new Notification("GPT STORE — новое сообщение", {
+                    body: (row.content ?? "").slice(0, 140) || "Ответ поддержки",
+                    tag: `chat-${sessionId}`,
+                  });
+                } catch {
+                  /* noop */
+                }
+              }
+            }
+          }
           void loadMessages({ silent: true });
         }
       )
@@ -92,7 +155,14 @@ export function ChatWindow({
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, supabase, loadMessages]);
+  }, [sessionId, supabase, loadMessages, viewerIsStaff, currentUser.id]);
+
+  useEffect(() => {
+    if (viewerIsStaff || typeof Notification === "undefined") return;
+    if (Notification.permission === "default") {
+      void Notification.requestPermission().catch(() => {});
+    }
+  }, [viewerIsStaff]);
 
   /** Резерв, если Realtime не доставляет события (репликация / RLS). */
   useEffect(() => {
@@ -136,6 +206,7 @@ export function ChatWindow({
     if (data.message) toAdd.push(data.message);
     if (data.autoReply) toAdd.push(data.autoReply);
     if (toAdd.length) {
+      forceScrollRef.current = true;
       setMessages((prev) => mergeById(prev, toAdd));
       scrollToBottom(true);
     }
@@ -153,19 +224,25 @@ export function ChatWindow({
   const closed = roomStatus === "closed";
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-3 border-b border-gray-100 bg-white px-4 py-3">
+    <div className="flex h-full min-h-0 min-w-0 flex-col overflow-x-hidden">
+      <div
+        className={cn(
+          "flex items-center gap-3 border-b px-3 py-3 transition-colors sm:px-4",
+          headerPulse ? "border-[#10a37f]/40 bg-[#10a37f]/8" : "border-gray-100 bg-white"
+        )}
+      >
         <div
           className={cn(
-            "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold",
-            viewerIsStaff ? "bg-amber-100 text-amber-800" : "bg-[#10a37f]/15 text-[#10a37f]"
+            "flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold transition-transform",
+            viewerIsStaff ? "bg-amber-100 text-amber-800" : "bg-[#10a37f]/15 text-[#10a37f]",
+            headerPulse && !viewerIsStaff && "scale-110 motion-safe:animate-pulse"
           )}
         >
           {viewerIsStaff ? "К" : "G"}
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-gray-900">
-            {otherPartyName ?? (viewerIsStaff ? "Клиент" : "GBT STORE — поддержка")}
+            {otherPartyName ?? (viewerIsStaff ? "Клиент" : "GPT STORE — поддержка")}
           </p>
           <div className="mt-0.5 flex items-center gap-1.5">
             <div
@@ -187,7 +264,10 @@ export function ChatWindow({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gray-50 p-4">
+      <div
+        ref={messagesContainerRef}
+        className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-gray-50 p-3 sm:p-4"
+      >
         {loading && (
           <div className="flex h-full items-center justify-center">
             <div className="flex flex-col items-center gap-2 text-gray-400">
@@ -245,11 +325,30 @@ export function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
-      <ChatInput
-        onSend={handleSend}
-        disabled={closed}
-        placeholder={closed ? "Чат закрыт" : "Напишите сообщение…"}
-      />
+      <div className="sticky bottom-0 z-20 bg-white">
+        {!error && !viewerIsStaff && !closed && (
+          <div className="border-t border-gray-100 bg-white px-3 pt-2">
+            <div className="flex flex-wrap gap-1.5 pb-2 md:flex-nowrap md:overflow-x-auto md:[-ms-overflow-style:none] md:[scrollbar-width:none] md:[&::-webkit-scrollbar]:hidden">
+              {OPERATOR_CHAT_QUICK_REPLIES.map(({ label, message }) => (
+                <button
+                  key={message}
+                  type="button"
+                  onClick={() => void handleSend(message)}
+                  className="max-w-full rounded-full border border-[#10a37f]/35 bg-white px-3 py-1.5 text-xs font-medium text-[#10a37f] transition-colors hover:bg-[#10a37f]/10 md:shrink-0"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <ChatInput
+          onSend={handleSend}
+          disabled={closed}
+          placeholder={closed ? "Чат закрыт" : "Напишите сообщение…"}
+        />
+      </div>
     </div>
   );
 }

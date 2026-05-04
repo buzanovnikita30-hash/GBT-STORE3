@@ -13,7 +13,7 @@ export default function AuthLayout({
           href="/"
           className="font-heading text-sm font-semibold text-gray-900 hover:text-[#10a37f] transition-colors"
         >
-          GBT STORE
+          GPT STORE
         </Link>
       </header>
       <main className="flex flex-1 items-center justify-center px-4 py-12">
@@ -22,7 +22,7 @@ export default function AuthLayout({
         </div>
       </main>
       <footer className="py-4 text-center text-xs text-gray-500">
-        © {new Date().getFullYear()} GBT STORE
+        © {new Date().getFullYear()} GPT STORE
       </footer>
     </div>
   );

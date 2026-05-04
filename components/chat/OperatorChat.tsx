@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { OPERATOR_CHAT_QUICK_REPLIES } from "@/lib/chat/scriptedFaq";
 import type { ChatMessage, ChatSenderType } from "@/types";
 
 interface Props {
@@ -14,23 +15,16 @@ interface Props {
   replyAsOperator?: boolean;
 }
 
-const CLIENT_FAQ_QUESTIONS = [
-  "Как оформить заказ?",
-  "Когда будет готова подписка?",
-  "Сколько стоит подписка?",
-  "Как передать данные для активации?",
-  "Есть ли гарантия на подписку?",
-  "Можно ли оплатить картой РФ?",
-  "Что делать если не работает вход?",
-];
-
 export function OperatorChat({ sessionId, userId, initialMessages = [], replyAsOperator = false }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const isSendingRef = useRef(false);
   const [loadingMessages, setLoadingMessages] = useState(initialMessages.length === 0);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const forceScrollRef = useRef(false);
+  const lastSeenMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     isSendingRef.current = isSending;
@@ -70,8 +64,23 @@ export function OperatorChat({ sessionId, userId, initialMessages = [], replyAsO
     };
   }, [sessionId, userId]);
 
+  const isNearBottom = () => {
+    const el = messagesContainerRef.current;
+    if (!el) return true;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    return distanceToBottom < 120;
+  };
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const lastMessageId = messages.at(-1)?.id ?? null;
+    const hasNewMessage = lastMessageId !== null && lastMessageId !== lastSeenMessageIdRef.current;
+
+    if (forceScrollRef.current || (hasNewMessage && isNearBottom())) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    forceScrollRef.current = false;
+    lastSeenMessageIdRef.current = lastMessageId;
   }, [messages]);
 
   async function sendMessage(text: string) {
@@ -80,6 +89,7 @@ export function OperatorChat({ sessionId, userId, initialMessages = [], replyAsO
     setInput("");
     setIsSending(true);
     isSendingRef.current = true;
+    forceScrollRef.current = true;
 
     const outgoingType: ChatSenderType = replyAsOperator ? "operator" : "client";
 
@@ -169,7 +179,7 @@ export function OperatorChat({ sessionId, userId, initialMessages = [], replyAsO
               G
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">GBT STORE — поддержка</p>
+              <p className="text-sm font-semibold text-white">GPT STORE — поддержка</p>
               <p className="text-xs text-white/80">На связи</p>
             </div>
           </div>
@@ -180,7 +190,10 @@ export function OperatorChat({ sessionId, userId, initialMessages = [], replyAsO
           </div>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 space-y-3 overflow-y-auto p-3 sm:p-4"
+        >
           {loadingMessages && (
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Loader2 size={14} className="animate-spin" />
@@ -226,38 +239,42 @@ export function OperatorChat({ sessionId, userId, initialMessages = [], replyAsO
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-black/[0.06] px-3 py-2">
-          <div className="flex gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
-            {CLIENT_FAQ_QUESTIONS.map((question) => (
-              <button
-                key={question}
-                type="button"
-                onClick={() => sendMessage(question)}
-                className="shrink-0 rounded-full border border-[#10a37f]/30 px-3 py-1.5 text-xs text-[#10a37f] transition-colors hover:bg-[#10a37f]/10"
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="sticky bottom-0 z-20 bg-white">
+          {!replyAsOperator && (
+            <div className="border-t border-black/[0.06] px-3 py-2">
+              <div className="flex flex-wrap gap-1.5 pb-1 md:flex-nowrap md:overflow-x-auto md:[&::-webkit-scrollbar]:hidden">
+                {OPERATOR_CHAT_QUICK_REPLIES.map(({ label, message }) => (
+                  <button
+                    key={message}
+                    type="button"
+                    onClick={() => sendMessage(message)}
+                    className="max-w-full rounded-full border border-[#10a37f]/30 px-3 py-1.5 text-xs font-medium text-[#10a37f] transition-colors hover:bg-[#10a37f]/10 md:shrink-0"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-        <div className="border-t border-black/[0.06] p-3">
-          <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Напишите оператору..."
-              className="flex-1 rounded-xl border border-black/[0.1] px-3 py-2 text-sm outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
-            />
-            <button
-              type="submit"
-              disabled={isSending || !input.trim()}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10a37f] text-white disabled:opacity-40"
-            >
-              {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-            </button>
-          </form>
+          <div className="border-t border-black/[0.06] p-3">
+            <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Напишите оператору..."
+                className="flex-1 rounded-xl border border-black/[0.1] px-3 py-2 text-sm outline-none focus:border-[#10a37f] focus:ring-2 focus:ring-[#10a37f]/20"
+              />
+              <button
+                type="submit"
+                disabled={isSending || !input.trim()}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#10a37f] text-white disabled:opacity-40"
+              >
+                {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Unbounded, Golos_Text } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { getMetadataBase } from "@/lib/app-url";
-import { CursorTrail } from "@/components/ui/CursorTrail";
 import { AnimatedBackground } from "@/components/ui/AnimatedBackground";
 import { CookieBanner } from "@/components/ui/CookieBanner";
 import { YandexMetrika } from "@/components/analytics/YandexMetrika";
@@ -24,8 +23,8 @@ const golos = Golos_Text({
 
 export const metadata: Metadata = {
   title: {
-    default: "ChatGPT Plus без иностранной карты — GBT STORE",
-    template: "%s | GBT STORE",
+    default: "ChatGPT Plus без иностранной карты — GPT STORE",
+    template: "%s | GPT STORE",
   },
   description:
     "Подключаем ChatGPT Plus и Pro на ваш аккаунт. Оплата картой РФ, активация за 3–15 минут, гарантия на весь срок.",
@@ -45,7 +44,6 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         <AnimatedBackground />
-        <CursorTrail />
         <div className="relative" style={{ zIndex: 1 }}>
           {children}
         </div>

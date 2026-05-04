@@ -9,8 +9,8 @@ export default async function AdminPromocodesPage() {
 
   return (
     <div className="p-6">
-      <h1 className="mb-2 font-heading text-2xl font-bold text-gray-100">Промокоды</h1>
-      <p className="mb-6 text-sm text-gray-400">
+      <h1 className="mb-2 font-heading text-2xl font-bold text-gray-900">Промокоды</h1>
+      <p className="mb-6 text-sm text-gray-600">
         Учитываются при оплате вместе с промокодами из настроек (JSON). При успешной оплате счётчик
         использований увеличивается.
       </p>

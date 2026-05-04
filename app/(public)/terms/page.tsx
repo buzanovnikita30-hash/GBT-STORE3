@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Пользовательское соглашение",
-  description: "Условия использования сервиса GBT STORE",
+  description: "Условия использования сервиса GPT STORE",
 };
 
 const SUPPORT_TELEGRAM = "https://t.me/subs_support";
@@ -14,7 +14,7 @@ export default function TermsPage() {
     <div className="flex min-h-screen flex-col bg-white">
       <header className="flex h-14 items-center border-b border-black/[0.06] px-6">
         <Link href="/" className="font-heading text-sm font-semibold text-gray-900 hover:text-[#10a37f]">
-          GBT STORE
+          GPT STORE
         </Link>
       </header>
       <main className="mx-auto max-w-3xl flex-1 px-4 py-12">
@@ -25,7 +25,7 @@ export default function TermsPage() {
             <h2 className="font-heading text-xl font-semibold text-gray-900">1. Термины</h2>
             <p>
               <strong className="font-medium text-gray-800">Сервис / Продавец</strong> — интернет-сайт и связанные с ним
-              процессы оформления заказа под брендом GBT STORE. <strong className="font-medium text-gray-800">Пользователь</strong> —
+              процессы оформления заказа под брендом GPT STORE. <strong className="font-medium text-gray-800">Пользователь</strong> —
               физическое лицо, оформившее заказ или использующее сайт. <strong className="font-medium text-gray-800">Услуга</strong> —
               комплекс действий по подключению или продлению выбранной цифровой подписки на указанные в заказе условия.
             </p>
