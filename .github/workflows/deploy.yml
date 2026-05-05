@@ -2,11 +2,9 @@
 # URL проекта: https://<user>.github.io/<repo>/
 # Если репозиторий называется <user>.github.io (сайт в корне), см. комментарий в шаге Build.
 
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (manual only)
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
