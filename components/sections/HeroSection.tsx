@@ -37,7 +37,7 @@ export function HeroSection() {
       {/* Контент */}
       <motion.div className="relative z-10 w-full" style={{ y: contentY, opacity }}>
         <motion.div
-          initial="hidden"
+          initial={false}
           animate="visible"
           variants={staggerContainer}
           className="mx-auto flex w-full max-w-4xl flex-col items-center text-center"

@@ -13,7 +13,7 @@ export function AnimateSection({ children, className, delay = 0 }: AnimateSectio
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, y: 40, scale: 0.98 }}
+      initial={false}
       whileInView={{ opacity: 1, y: 0, scale: 1 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{

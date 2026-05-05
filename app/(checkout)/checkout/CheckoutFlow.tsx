@@ -156,7 +156,7 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
         {step === 1 && (
           <motion.div
             key="step1"
-            initial={{ opacity: 0, x: 20 }}
+            initial={false}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
@@ -220,7 +220,7 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
         {step === 2 && (
           <motion.div
             key="step2"
-            initial={{ opacity: 0, x: 20 }}
+            initial={false}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
@@ -279,7 +279,7 @@ export function CheckoutFlow({ initialPlans }: { initialPlans?: ExtendedPlan[] }
         {step === 3 && (
           <motion.div
             key="step3"
-            initial={{ opacity: 0, x: 20 }}
+            initial={false}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.25 }}
