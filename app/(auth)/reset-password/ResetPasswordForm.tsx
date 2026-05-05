@@ -19,8 +19,10 @@ export function ResetPasswordForm({ callbackError }: { callbackError?: string })
   async function onSubmit(data: ResetPasswordInput) {
     setServerError(null);
     const supabase = createClient();
+    const redirectUrl = new URL("/reset-password/update", window.location.origin);
+    redirectUrl.searchParams.set("returnUrl", "/login?reset=success");
     const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmailForAuth(data.email), {
-      redirectTo: `${window.location.origin}/reset-password/update?returnUrl=/login?reset=success`,
+      redirectTo: redirectUrl.toString(),
     });
     if (error) { setServerError(error.message); return; }
     setDone(true);
