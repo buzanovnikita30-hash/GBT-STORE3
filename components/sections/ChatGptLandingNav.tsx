@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, User } from "lucide-react";
 
@@ -14,6 +15,32 @@ const NAV_LINKS = [
 
 export function ChatGptLandingNav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleAnchorClick = (href: string) => {
+    setOpen(false);
+
+    if (!href.startsWith("#")) {
+      router.push(href);
+      return;
+    }
+
+    const targetId = href.slice(1);
+    const target = typeof document !== "undefined" ? document.getElementById(targetId) : null;
+
+    if (pathname !== "/") {
+      router.push(`/${href}`);
+      return;
+    }
+
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    router.push("/#pricing");
+  };
 
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-black/[0.06] bg-white/90 backdrop-blur-xl transition-colors duration-150">
@@ -25,13 +52,14 @@ export function ChatGptLandingNav() {
         {/* Desktop links */}
         <nav className="hidden items-center gap-6 text-sm text-gray-500 md:flex">
           {NAV_LINKS.map((link) => (
-            <a
+            <button
               key={link.href}
-              href={link.href}
+              type="button"
+              onClick={() => handleAnchorClick(link.href)}
               className="transition-colors duration-100 hover:text-gray-900"
             >
               {link.label}
-            </a>
+            </button>
           ))}
         </nav>
 
@@ -73,14 +101,14 @@ export function ChatGptLandingNav() {
           >
             <nav className="flex flex-col gap-1 bg-white px-4 pb-4 pt-2">
               {NAV_LINKS.map((link) => (
-                <a
+                <button
                   key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
+                  type="button"
+                  onClick={() => handleAnchorClick(link.href)}
                   className="rounded-lg px-3 py-2.5 text-sm text-gray-600 transition-colors duration-100 hover:bg-gray-50 hover:text-gray-900"
                 >
                   {link.label}
-                </a>
+                </button>
               ))}
               <Link
                 href="/dashboard"
